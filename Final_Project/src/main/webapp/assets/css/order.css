@@ -1,0 +1,727 @@
+/* ==========================================================================
+   CINETIK - ORDER & E-TICKET STYLESHEET (order.css)
+   Thiết kế giao diện Lịch Sử Đơn Vé & Vé Điện Tử E-Ticket (QR/Barcode)
+   ========================================================================== */
+
+/* 1. CONTAINER CHUNG */
+.order-page-container {
+    min-height: calc(100vh - 80px);
+    background-color: #0c0e12;
+    background-image: 
+        radial-gradient(circle at 50% 0%, rgba(229, 169, 59, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 10% 40%, rgba(18, 22, 30, 0.6) 0%, transparent 40%);
+    color: #e2e8f0;
+    font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 40px 20px 80px;
+}
+
+.order-wrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* 2. TIÊU ĐỀ TRANG */
+.order-header-section {
+    margin-bottom: 32px;
+}
+
+.order-page-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.order-page-title span.title-icon {
+    font-size: 26px;
+}
+
+.order-page-subtitle {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* 3. TABS LỌC TRẠNG THÁI */
+.order-filter-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+    overflow-x: auto;
+}
+
+.order-tab-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.order-tab-btn:hover {
+    color: #f8fafc;
+    border-color: rgba(229, 169, 59, 0.4);
+    background: rgba(229, 169, 59, 0.05);
+}
+
+.order-tab-btn.active {
+    background: #e5a93b;
+    color: #0f1217;
+    font-weight: 600;
+    border-color: #e5a93b;
+    box-shadow: 0 2px 10px rgba(229, 169, 59, 0.25);
+}
+
+/* 4. DANH SÁCH THẺ ĐƠN HÀNG (HISTORY CARDS) */
+.order-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.order-card {
+    background: #151820;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.order-card:hover {
+    border-color: rgba(229, 169, 59, 0.35);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    transform: translateY(-2px);
+}
+
+/* Header của đơn hàng */
+.order-card-header {
+    background: #1a1e27;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.order-meta-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.order-code-badge {
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fcca46;
+    letter-spacing: 0.5px;
+}
+
+.order-time-text {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Badge trạng thái */
+.order-status-pill {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.order-status-pill.success {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.order-status-pill.pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.order-status-pill.cancelled {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Nội dung thân đơn hàng */
+.order-card-body {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    gap: 20px;
+    align-items: center;
+}
+
+.order-poster-thumb {
+    width: 110px;
+    height: 155px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.order-movie-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.order-movie-tag {
+    display: inline-block;
+    background: rgba(229, 169, 59, 0.12);
+    color: #fcca46;
+    border: 1px solid rgba(229, 169, 59, 0.3);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    width: fit-content;
+}
+
+.order-movie-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0;
+}
+
+.order-showtime-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 13px;
+    color: #cbd5e1;
+    margin-top: 4px;
+}
+
+.order-showtime-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.order-seats-wrap {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.order-seat-badge {
+    background: #232936;
+    color: #fcca46;
+    border: 1px solid rgba(252, 202, 70, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.order-combos-text {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+/* Cột giá & CTA của thẻ đơn hàng */
+.order-card-action {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 12px;
+    border-left: 1px dashed rgba(255, 255, 255, 0.08);
+    padding-left: 20px;
+    min-width: 170px;
+}
+
+.order-total-label {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.order-total-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fcca46;
+}
+
+.btn-view-ticket {
+    background: linear-gradient(135deg, #e5a93b 0%, #d4952b 100%);
+    color: #0f1217;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(229, 169, 59, 0.25);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-view-ticket:hover {
+    background: linear-gradient(135deg, #fcca46 0%, #e5a93b 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(229, 169, 59, 0.35);
+}
+
+/* Empty State khi chưa có vé nào */
+.order-empty-state {
+    text-align: center;
+    padding: 70px 20px;
+    background: #151820;
+    border-radius: 14px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.order-empty-icon {
+    font-size: 54px;
+    margin-bottom: 16px;
+    opacity: 0.7;
+}
+
+.order-empty-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: #f8fafc;
+    margin: 0 0 8px;
+}
+
+.order-empty-desc {
+    color: #94a3b8;
+    font-size: 14px;
+    max-width: 400px;
+    margin: 0 auto 24px;
+}
+
+.btn-browse-movies {
+    background: #e5a93b;
+    color: #0f1217;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.btn-browse-movies:hover {
+    background: #fcca46;
+}
+
+/* ==========================================================================
+   5. MÀN HÌNH VÉ ĐIỆN TỬ (TICKET-DETAIL.JSP)
+   Tấm vé cổ điển kèm Mã QR Code & Barcode quét tại quầy
+   ========================================================================== */
+
+.eticket-container {
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+/* Các nút điều hướng phía trên vé */
+.eticket-top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.btn-ticket-back-link {
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s ease;
+}
+
+.btn-ticket-back-link:hover {
+    color: #fcca46;
+}
+
+.btn-ticket-print {
+    background: #1e2430;
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 13px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-ticket-print:hover {
+    background: #283040;
+    border-color: #e5a93b;
+    color: #fcca46;
+}
+
+/* TẤM VÉ ĐIỆN TỬ (E-PASS TICKET CARD) */
+.eticket-card {
+    background: linear-gradient(180deg, #181d26 0%, #13171e 100%);
+    border: 1px solid rgba(229, 169, 59, 0.35);
+    border-radius: 18px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 20px rgba(229, 169, 59, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hai vết khuyết bán nguyệt cổ điển 2 bên mép vé */
+.eticket-cutout-left,
+.eticket-cutout-right {
+    position: absolute;
+    top: 55%;
+    width: 26px;
+    height: 26px;
+    background-color: #0c0e12; /* Trùng với màu nền trang */
+    border-radius: 50%;
+    z-index: 10;
+    border: 1px solid rgba(229, 169, 59, 0.35);
+}
+
+.eticket-cutout-left {
+    left: -14px;
+}
+
+.eticket-cutout-right {
+    right: -14px;
+}
+
+/* Header vé */
+.eticket-header {
+    padding: 24px 24px 16px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(229, 169, 59, 0.03);
+}
+
+.eticket-brand-badge {
+    display: inline-block;
+    color: #e5a93b;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.eticket-admit-title {
+    font-family: 'Limelight', cursive;
+    font-size: 32px;
+    color: #f8fafc;
+    letter-spacing: 3px;
+    margin: 0;
+    line-height: 1.1;
+}
+
+.eticket-theater-name {
+    font-size: 13px;
+    color: #cbd5e1;
+    margin-top: 4px;
+}
+
+/* Thân vé: Thông tin phim */
+.eticket-body {
+    padding: 20px 24px;
+}
+
+.eticket-movie-banner {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.eticket-movie-poster {
+    width: 75px;
+    height: 105px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
+}
+
+.eticket-movie-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.eticket-movie-tag {
+    font-size: 11px;
+    background: rgba(229, 169, 59, 0.15);
+    color: #fcca46;
+    border: 1px solid rgba(229, 169, 59, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    width: fit-content;
+    font-weight: 600;
+}
+
+.eticket-movie-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* 3 Ô Suất - Ngày - Phòng cổ điển */
+.eticket-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.eticket-meta-card {
+    background: #1c222c;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+}
+
+.eticket-meta-label {
+    display: block;
+    font-size: 10px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.eticket-meta-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fcca46;
+}
+
+/* Thông tin ghế và bắp nước */
+.eticket-details-list {
+    background: #11141a;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.eticket-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.eticket-detail-label {
+    color: #94a3b8;
+}
+
+.eticket-seats-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.eticket-seat-pill {
+    background: #252c38;
+    color: #fcca46;
+    border: 1px solid rgba(252, 202, 70, 0.4);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.eticket-price-text {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fcca46;
+}
+
+/* ĐƯỜNG RÃNH XÉ VÉ ĐỨT NÉT */
+.eticket-perforation {
+    border: none;
+    border-top: 2px dashed rgba(229, 169, 59, 0.4);
+    margin: 10px 0;
+    position: relative;
+}
+
+/* PHẦN QUÉT MÃ SOÁT VÉ (SCANNING SECTION) */
+.eticket-scan-section {
+    padding: 20px 24px 26px;
+    text-align: center;
+    background: #101318;
+}
+
+.eticket-scan-instruction {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin-bottom: 14px;
+}
+
+.eticket-qr-box {
+    display: inline-block;
+    background: #ffffff;
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    margin-bottom: 14px;
+}
+
+.eticket-qr-box img {
+    display: block;
+    width: 170px;
+    height: 170px;
+}
+
+/* Mã vạch Barcode tuyến tính */
+.eticket-barcode-box {
+    margin-top: 10px;
+}
+
+.eticket-barcode-lines {
+    height: 38px;
+    background: repeating-linear-gradient(
+        90deg,
+        #cbd5e1 0px,
+        #cbd5e1 2px,
+        transparent 2px,
+        transparent 4px,
+        #cbd5e1 4px,
+        #cbd5e1 7px,
+        transparent 7px,
+        transparent 9px,
+        #cbd5e1 9px,
+        #cbd5e1 10px,
+        transparent 10px,
+        transparent 13px
+    );
+    opacity: 0.8;
+    max-width: 280px;
+    margin: 0 auto;
+}
+
+.eticket-serial-number {
+    font-family: monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #94a3b8;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+.eticket-notice {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 14px;
+    line-height: 1.5;
+}
+
+/* IN VÉ CHUYÊN NGHIỆP (@MEDIA PRINT) */
+@media print {
+    header, footer, .eticket-top-nav, .order-filter-tabs, .btn-ticket-print {
+        display: none !important;
+    }
+
+    body, .order-page-container {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+    }
+
+    .eticket-card {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+        box-shadow: none !important;
+    }
+
+    .eticket-admit-title, .eticket-movie-title, .eticket-meta-value, .eticket-price-text {
+        color: #000000 !important;
+    }
+
+    .eticket-meta-card, .eticket-details-list {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .eticket-seat-pill {
+        background: #e2e8f0 !important;
+        color: #000000 !important;
+        border: 1px solid #94a3b8 !important;
+    }
+}
+
+/* RESPONSIVE MOBILE */
+@media (max-width: 768px) {
+    .order-card-body {
+        grid-template-columns: 85px 1fr;
+        gap: 14px;
+    }
+
+    .order-poster-thumb {
+        width: 85px;
+        height: 120px;
+    }
+
+    .order-card-action {
+        grid-column: 1 / -1;
+        border-left: none;
+        border-top: 1px dashed rgba(255, 255, 255, 0.08);
+        padding-left: 0;
+        padding-top: 14px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    .eticket-meta-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}

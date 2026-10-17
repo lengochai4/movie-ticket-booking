@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence" version="3.0">
+    <!-- Tên persistence-unit này sẽ được dùng trong code Java -->
+    <persistence-unit name="CinemaPU" transaction-type="RESOURCE_LOCAL">
+        <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+
+        <class>com.cinema.entity.Movie</class>
+        <class>com.cinema.entity.Cinema</class>
+        <class>com.cinema.entity.Room</class>
+        <class>com.cinema.entity.Showtime</class>
+        <class>com.cinema.entity.Seat</class>
+        <exclude-unlisted-classes>false</exclude-unlisted-classes>
+
+        <properties>
+            <!-- Thông tin kết nối PostgreSQL -->
+            <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver" />
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://dpg-datt14ou01pc73aecb50-a.oregon-postgres.render.com:5432/email_list_db_jut9" />
+            <property name="jakarta.persistence.jdbc.user" value="email_list_db_jut9_user" />
+            <property name="jakarta.persistence.jdbc.password" value="2hI1wdwOOKNvIH77Bilyuv4COJ7mkXDB" />
+
+            <!-- EclipseLink properties -->
+            <property name="eclipselink.ddl-generation" value="create-or-extend-tables"/>
+            <!-- In câu lệnh SQL ra console để dễ debug -->
+            <property name="eclipselink.logging.level.sql" value="FINE"/>
+            <property name="eclipselink.logging.parameters" value="true"/>
+        </properties>
+    </persistence-unit>
+</persistence>

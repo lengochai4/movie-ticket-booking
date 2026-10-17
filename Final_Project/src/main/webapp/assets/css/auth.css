@@ -1,0 +1,197 @@
+@charset "UTF-8";
+
+/* ── Khung bọc căn giữa trang ── */
+.auth-container {
+    min-height: calc(100vh - 170px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 16px;
+    background: radial-gradient(circle at center, #1c1514 0%, #0d0b0a 100%);
+}
+
+/* ── Thẻ Card chứa Form ── */
+.auth-card {
+    background-color: #161413;
+    border: 1px solid rgba(252, 202, 70, 0.25);
+    border-radius: 12px;
+    padding: 36px 32px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+}
+
+.auth-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fcca46;
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.auth-subtitle {
+    font-size: 14px;
+    color: #b5a995;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+/* ── Hộp thông báo lỗi ── */
+.auth-alert.error {
+    background: rgba(120, 0, 0, 0.35);
+    border: 1px solid #c92a2a;
+    color: #ff8787;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* ── Form Inputs ── */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #f6ead2;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: #23201e;
+    border: 1px solid #3c3733;
+    border-radius: 6px;
+    color: #f6ead2;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+    border-color: #fcca46;
+    box-shadow: 0 0 0 2px rgba(252, 202, 70, 0.2);
+}
+
+.form-input::placeholder {
+    color: #6e6459;
+}
+
+/* ── Ghi nhớ & Quên mật khẩu ── */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    margin-top: -4px;
+}
+
+.remember-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: #b5a995;
+}
+
+.remember-label input[type="checkbox"] {
+    accent-color: #780000;
+    cursor: pointer;
+}
+
+.auth-link {
+    color: #b5a995;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.auth-link:hover {
+    color: #fcca46;
+    text-decoration: underline;
+}
+
+/* ── Nút Đăng nhập chính ── */
+.btn-auth-submit {
+    margin-top: 6px;
+    padding: 13px;
+    background-color: #780000;
+    color: #fcca46;
+    border: 1px solid #fcca46;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.25s ease;
+}
+
+.btn-auth-submit:hover {
+    background-color: #920000;
+    box-shadow: 0 0 14px rgba(252, 202, 70, 0.4);
+    transform: translateY(-1px);
+}
+
+/* ── Chân Card: Chuyển sang Đăng ký ── */
+.auth-footer {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 14px;
+    color: #b5a995;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 16px;
+}
+
+.auth-link-highlight {
+    color: #fcca46;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 4px;
+}
+
+.auth-link-highlight:hover {
+    text-decoration: underline;
+}
+
+/* Thông báo thành công */
+.auth-alert.success {
+    background: rgba(43, 138, 62, 0.25);
+    border: 1px solid #2b8a3e;
+    color: #69db7c;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Tăng độ rộng riêng cho khung Đăng ký */
+.auth-card.register-card {
+    max-width: 480px;
+}
+
+.auth-card.register-card .auth-form {
+    gap: 15px;
+}
+
+.form-hint {
+    font-size: 12px;
+    color: #8c8275;
+    margin-top: 4px;
+    display: block;
+    line-height: 1.4;
+}
