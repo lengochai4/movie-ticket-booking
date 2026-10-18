@@ -1,0 +1,330 @@
+@charset "UTF-8";
+
+/* Container tổng bọc trang */
+.profile-container {
+    min-height: calc(100vh - 180px);
+    padding: 48px 24px;
+    background: radial-gradient(circle at top center, #1e1715 0%, #0d0b0a 100%);
+    display: flex;
+    justify-content: center;
+}
+
+.profile-layout {
+    width: 100%;
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 32px;
+    align-items: start;
+}
+
+/* ================= 1. SIDEBAR TRÁI ================= */
+.profile-sidebar {
+    background-color: #161413;
+    border: 1px solid rgba(252, 202, 70, 0.2);
+    border-radius: 12px;
+    padding: 28px 20px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+}
+
+.user-card-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 24px;
+    margin-bottom: 20px;
+}
+
+.avatar-wrapper {
+    margin-bottom: 14px;
+}
+
+.avatar-placeholder {
+    width: 86px;
+    height: 86px;
+    background: linear-gradient(135deg, #780000 0%, #c92a2a 100%);
+    color: #fcca46;
+    border: 2px solid #fcca46;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    font-weight: 700;
+    box-shadow: 0 0 14px rgba(252, 202, 70, 0.3);
+}
+
+.user-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f6ead2;
+    margin-bottom: 4px;
+}
+
+.user-email {
+    font-size: 13px;
+    color: #b5a995;
+    word-break: break-all;
+    margin-bottom: 12px;
+}
+
+.user-badge {
+    background-color: rgba(252, 202, 70, 0.12);
+    color: #fcca46;
+    border: 1px solid rgba(252, 202, 70, 0.4);
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Menu bên trái */
+.profile-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #b5a995;
+    font-size: 15px;
+    font-family: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.menu-item:hover {
+    background: rgba(252, 202, 70, 0.08);
+    color: #fcca46;
+}
+
+.menu-item.active {
+    background: #780000;
+    color: #fcca46;
+    font-weight: 600;
+    border: 1px solid rgba(252, 202, 70, 0.3);
+}
+
+.menu-item.logout-link {
+    margin-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 16px;
+    color: #e06c75;
+}
+
+.menu-item.logout-link:hover {
+    background: rgba(224, 108, 117, 0.15);
+    color: #ff8787;
+}
+
+/* ================= 2. NỘI DUNG PHẢI (MAIN PANEL) ================= */
+.profile-content {
+    background-color: #161413;
+    border: 1px solid rgba(252, 202, 70, 0.2);
+    border-radius: 12px;
+    padding: 36px 40px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 16px;
+    margin-bottom: 28px;
+}
+
+.tab-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    color: #fcca46;
+    margin-bottom: 6px;
+}
+
+.tab-header p {
+    font-size: 14px;
+    color: #b5a995;
+}
+
+/* Thông báo */
+.profile-alert {
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+.profile-alert.error {
+    background: rgba(120, 0, 0, 0.4);
+    border: 1px solid #c92a2a;
+    color: #ff8787;
+}
+
+.profile-alert.success {
+    background: rgba(43, 138, 62, 0.25);
+    border: 1px solid #2b8a3e;
+    color: #69db7c;
+}
+
+/* Form controls */
+.profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #f6ead2;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: #23201e;
+    border: 1px solid #3c3733;
+    border-radius: 6px;
+    color: #f6ead2;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.form-input:focus {
+    border-color: #fcca46;
+    box-shadow: 0 0 0 2px rgba(252, 202, 70, 0.2);
+}
+
+.form-input.readonly-input {
+    background: #1c1a19;
+    color: #8c8275;
+    cursor: not-allowed;
+    border-color: #2b2724;
+}
+
+.field-hint {
+    font-size: 12px;
+    color: #8c8275;
+}
+
+.error-inline {
+    font-size: 13px;
+    color: #ff8787;
+    margin-top: 6px;
+    display: block;
+}
+
+/* Khung tiêu chí mật khẩu Regex */
+.pwd-rules-box {
+    background-color: #1a1716;
+    border: 1px solid #3c3733;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12.5px;
+}
+
+.rule-item {
+    color: #8c8275;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.rule-item .rule-icon {
+    font-size: 11px;
+    font-weight: bold;
+    display: inline-block;
+    width: 14px;
+}
+
+.rule-item.valid {
+    color: #69db7c;
+    font-weight: 500;
+}
+
+.rule-item.valid .rule-icon {
+    color: #69db7c;
+}
+
+.form-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.btn-primary {
+    padding: 12px 28px;
+    background-color: #780000;
+    color: #fcca46;
+    border: 1px solid #fcca46;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    transition: all 0.25s ease;
+}
+
+.btn-primary:hover {
+    background-color: #920000;
+    box-shadow: 0 0 12px rgba(252, 202, 70, 0.35);
+    transform: translateY(-1px);
+}
+
+/* ================= RESPONSIVE TRÊN MOBILE ================= */
+@media (max-width: 860px) {
+    .profile-layout {
+        grid-template-columns: 1fr;
+    }
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    .profile-content {
+        padding: 24px 20px;
+    }
+}
