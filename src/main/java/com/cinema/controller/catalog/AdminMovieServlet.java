@@ -7,8 +7,10 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -105,76 +107,130 @@ public class AdminMovieServlet extends HttpServlet {
         String path = request.getServletPath();
 
         if ("/admin/movies/save".equals(path)) {
-            String id = request.getParameter("movieID");
-            String title = request.getParameter("title");
-            String director = request.getParameter("director");
-            String genre = request.getParameter("genre");
-            String durationStr = request.getParameter("duration");
-            String releaseDateStr = request.getParameter("releaseDate");
-            String ageRating = request.getParameter("ageRating");
-            String posterURL = request.getParameter("posterURL");
-            String description = request.getParameter("description");
-
-            int duration = 0;
-            if (durationStr != null && !durationStr.trim().isEmpty()) {
-                try {
-                    duration = Integer.parseInt(durationStr.trim());
-                } catch (NumberFormatException ignored) {}
-            }
-
-            LocalDate releaseDate = null;
-            if (releaseDateStr != null && !releaseDateStr.trim().isEmpty()) {
-                try {
-                    releaseDate = LocalDate.parse(releaseDateStr.trim());
-                } catch (Exception ignored) {}
-            }
-
-            try {
-                if (id != null && !id.trim().isEmpty()) {
-                    // Cập nhật phim hiện có
-                    Movie movie = movieDAO.findById(id.trim());
-                    if (movie != null) {
-                        movie.setTitle(title);
-                        movie.setDirector(director);
-                        movie.setGenre(genre);
-                        movie.setDuration(duration);
-                        movie.setReleaseDate(releaseDate);
-                        movie.setAgeRating(ageRating);
-                        movie.setPosterURL(posterURL);
-                        movie.setDescription(description);
-                        movieDAO.update(movie);
-                        System.out.println("[ADMIN MOVIE] Đã cập nhật phim: " + title + " (ID: " + id + ")");
-                    }
-                } else {
-                    // Thêm phim mới
-                    Movie newMovie = new Movie(title, description, posterURL, director, duration, releaseDate);
-                    newMovie.setGenre(genre);
-                    newMovie.setAgeRating(ageRating);
-                    movieDAO.insert(newMovie);
-                    System.out.println("[ADMIN MOVIE] Đã thêm phim mới: " + title);
-                }
-            } catch (Exception e) {
-                System.err.println("[ADMIN MOVIE] Lỗi khi lưu phim: " + e.getMessage());
-                e.printStackTrace();
-            }
-
+            handleSave(request);
             response.sendRedirect(request.getContextPath() + "/admin/movies");
             return;
         } else if ("/admin/movies/delete".equals(path)) {
-            String id = request.getParameter("movieID");
-            if (id != null && !id.trim().isEmpty()) {
-                try {
-                    movieDAO.delete(id.trim());
-                    System.out.println("[ADMIN MOVIE] Đã xóa phim có ID: " + id);
-                } catch (Exception e) {
-                    System.err.println("[ADMIN MOVIE] Lỗi khi xóa phim: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
+            handleDelete(request);
             response.sendRedirect(request.getContextPath() + "/admin/movies");
             return;
         }
 
         doGet(request, response);
+    }
+
+    private void handleSave(HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        String id = trimToNull(request.getParameter("movieID"));
+        String title = trimToNull(request.getParameter("title"));
+        String director = trimToNull(request.getParameter("director"));
+        String genre = trimToNull(request.getParameter("genre"));
+        String durationStr = trimToNull(request.getParameter("duration"));
+        String releaseDateStr = trimToNull(request.getParameter("releaseDate"));
+        String ageRating = trimToNull(request.getParameter("ageRating"));
+        String posterURL = trimToNull(request.getParameter("posterURL"));
+        String trailerURL = trimToNull(request.getParameter("trailerURL"));
+        String description = trimToNull(request.getParameter("description"));
+
+        // 1. Kiểm tra dữ liệu đầu vào
+        if (title == null) {
+            session.setAttribute("errorMessage", "Tên phim không được để trống.");
+            return;
+        }
+
+        int duration;
+        try {
+            duration = Integer.parseInt(durationStr);
+        } catch (Exception e) {
+            duration = 0;
+        }
+        if (duration <= 0) {
+            session.setAttribute("errorMessage", "Thời lượng phim phải là số phút lớn hơn 0.");
+            return;
+        }
+
+        LocalDate releaseDate = null;
+        if (releaseDateStr != null) {
+            try {
+                releaseDate = LocalDate.parse(releaseDateStr);
+            } catch (Exception e) {
+                session.setAttribute("errorMessage", "Ngày khởi chiếu không hợp lệ.");
+                return;
+            }
+        }
+
+        // 2. Lưu vào database
+        try {
+            if (id != null) {
+                // Cập nhật phim hiện có
+                Movie movie = movieDAO.findById(id);
+                if (movie == null) {
+                    session.setAttribute("errorMessage", "Phim cần sửa không còn tồn tại.");
+                    return;
+                }
+                movie.setTitle(title);
+                movie.setDirector(director);
+                movie.setGenre(genre);
+                movie.setDuration(duration);
+                movie.setReleaseDate(releaseDate);
+                movie.setAgeRating(ageRating);
+                movie.setPosterURL(posterURL);
+                movie.setTrailerURL(trailerURL);
+                movie.setDescription(description);
+                movieDAO.update(movie);
+                System.out.println("[ADMIN MOVIE] Đã cập nhật phim: " + title + " (ID: " + id + ")");
+                session.setAttribute("successMessage", "Đã cập nhật phim \"" + title + "\".");
+            } else {
+                // Thêm phim mới
+                Movie newMovie = new Movie(title, description, posterURL, director, duration, releaseDate);
+                newMovie.setGenre(genre);
+                newMovie.setAgeRating(ageRating);
+                newMovie.setTrailerURL(trailerURL);
+                movieDAO.insert(newMovie);
+                System.out.println("[ADMIN MOVIE] Đã thêm phim mới: " + title);
+                session.setAttribute("successMessage", "Đã thêm phim \"" + title + "\".");
+            }
+        } catch (RuntimeException e) {
+            System.err.println("[ADMIN MOVIE] Lỗi khi lưu phim: " + e.getMessage());
+            e.printStackTrace();
+            session.setAttribute("errorMessage", "Không thể lưu phim do lỗi hệ thống. Vui lòng thử lại.");
+        }
+    }
+
+    private void handleDelete(HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        String id = trimToNull(request.getParameter("movieID"));
+        if (id == null) {
+            session.setAttribute("errorMessage", "Thiếu mã phim cần xóa.");
+            return;
+        }
+        try {
+            movieDAO.delete(id);
+            System.out.println("[ADMIN MOVIE] Đã xóa phim có ID: " + id);
+            session.setAttribute("successMessage", "Đã xóa phim thành công.");
+        } catch (RuntimeException e) {
+            System.err.println("[ADMIN MOVIE] Lỗi khi xóa phim: " + e.getMessage());
+            if (isForeignKeyViolation(e)) {
+                session.setAttribute("errorMessage",
+                        "Không thể xóa phim vì đã có vé được đặt cho suất chiếu của phim này.");
+            } else {
+                e.printStackTrace();
+                session.setAttribute("errorMessage", "Không thể xóa phim do lỗi hệ thống. Vui lòng thử lại.");
+            }
+        }
+    }
+
+    // PostgreSQL trả SQLState 23503 khi vi phạm khóa ngoại (bản ghi đang được bảng khác tham chiếu)
+    private boolean isForeignKeyViolation(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof SQLException && "23503".equals(((SQLException) t).getSQLState())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String trimToNull(String s) {
+        return (s == null || s.trim().isEmpty()) ? null : s.trim();
     }
 }

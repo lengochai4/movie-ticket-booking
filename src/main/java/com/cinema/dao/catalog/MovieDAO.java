@@ -170,7 +170,8 @@ public class MovieDAO {
             trans.commit();
         } catch (Exception e) {
             if (trans.isActive()) trans.rollback();
-            e.printStackTrace();
+            System.err.println("[MovieDAO] Lỗi insert: " + e.getMessage());
+            throw new RuntimeException(e);
         } finally {
             em.close();
         }
@@ -185,7 +186,8 @@ public class MovieDAO {
             trans.commit();
         } catch (Exception e) {
             if (trans.isActive()) trans.rollback();
-            e.printStackTrace();
+            System.err.println("[MovieDAO] Lỗi update: " + e.getMessage());
+            throw new RuntimeException(e);
         } finally {
             em.close();
         }
@@ -203,7 +205,8 @@ public class MovieDAO {
             trans.commit();
         } catch (Exception e) {
             if (trans.isActive()) trans.rollback();
-            e.printStackTrace();
+            System.err.println("[MovieDAO] Lỗi delete: " + e.getMessage());
+            throw new RuntimeException(e);
         } finally {
             em.close();
         }

@@ -724,7 +724,7 @@
                                     </td>
                                     <td>
                                         <strong style="color: #e4d8c5; font-size: 14px;">
-                                            <fmt:formatNumber value="${st.price != null ? st.price : 90000}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>
+                                            <fmt:formatNumber value="${st.price != null ? st.price : 90000}" type="number" maxFractionDigits="0"/> đ
                                         </strong>
                                     </td>
                                     <td>
@@ -749,7 +749,9 @@
                                                 <span>Sửa</span>
                                             </button>
                                             <button type="button" class="btn-table-action delete" title="Hủy suất chiếu" 
-                                                    onclick="openDeleteShowtimeModal('${st.showtimeID}', '${st.movie.title}', '${st.room.name}', '${st.timeRange}', 0)">
+                                                    data-id="${st.showtimeID}" data-title="<c:out value='${st.movie.title}'/>"
+                                                    data-room="<c:out value='${st.room.name}'/>" data-time="${st.timeRange}"
+                                                    onclick="openDeleteShowtimeModal(this.dataset.id, this.dataset.title, this.dataset.room, this.dataset.time, 0)">
                                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                                     <polyline points="3 6 5 6 21 6"></polyline>
                                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
