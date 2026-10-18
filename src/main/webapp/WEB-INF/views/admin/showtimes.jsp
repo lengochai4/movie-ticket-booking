@@ -605,38 +605,18 @@
                 <span>📅 Ngày chiếu</span>
             </div>
             <div class="date-pill-list" id="datePillList">
-                <a href="javascript:void(0)" class="date-pill active" onclick="selectDatePill(this, '2026-10-16')">
-                    <span class="day-name">Hôm nay</span>
-                    <span class="day-num">16/10</span>
-                </a>
-                <a href="javascript:void(0)" class="date-pill" onclick="selectDatePill(this, '2026-10-17')">
-                    <span class="day-name">Thứ 7</span>
-                    <span class="day-num">17/10</span>
-                </a>
-                <a href="javascript:void(0)" class="date-pill" onclick="selectDatePill(this, '2026-10-18')">
-                    <span class="day-name">Chủ Nhật</span>
-                    <span class="day-num">18/10</span>
-                </a>
-                <a href="javascript:void(0)" class="date-pill" onclick="selectDatePill(this, '2026-10-19')">
-                    <span class="day-name">Thứ Hai</span>
-                    <span class="day-num">19/10</span>
-                </a>
-                <a href="javascript:void(0)" class="date-pill" onclick="selectDatePill(this, '2026-10-20')">
-                    <span class="day-name">Thứ Ba</span>
-                    <span class="day-num">20/10</span>
-                </a>
-                <a href="javascript:void(0)" class="date-pill" onclick="selectDatePill(this, '2026-10-21')">
-                    <span class="day-name">Thứ Tư</span>
-                    <span class="day-num">21/10</span>
-                </a>
-                <a href="javascript:void(0)" class="date-pill" onclick="selectDatePill(this, '2026-10-22')">
-                    <span class="day-name">Thứ Năm</span>
-                    <span class="day-num">22/10</span>
-                </a>
+                <c:forEach items="${datePills}" var="pill">
+                    <a href="<c:url value='/admin/showtimes'><c:param name='date' value='${pill.iso}'/></c:url>"
+                       class="date-pill ${pill.iso == selectedDate ? 'active' : ''}">
+                        <span class="day-name">${pill.dayName}</span>
+                        <span class="day-num">${pill.dayNum}</span>
+                    </a>
+                </c:forEach>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <input type="date" id="customDatePicker" class="date-custom-input" value="${not empty selectedDate ? selectedDate : '2026-10-16'}" onchange="onCustomDateChange(this.value)">
-            </div>
+            <%---- Chọn ngày bất kỳ: gửi form GET để tải lại danh sách suất chiếu của ngày đó ----%>
+            <form action="${pageContext.request.contextPath}/admin/showtimes" method="GET" style="display: flex; align-items: center; gap: 8px;">
+                <input type="date" name="date" id="customDatePicker" class="date-custom-input" value="${selectedDate}" onchange="this.form.submit()">
+            </form>
         </section>
 
         <%---- ================= 4. BỘ LỌC CHI TIẾT ================= ----%>
@@ -1015,7 +995,7 @@
                 <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 14px;">
                     <div class="form-group">
                         <label class="form-label">Ngày Chiếu <span style="color: #ef4444;">*</span></label>
-                        <input type="date" name="showDate" id="inputShowDate" class="form-input" value="2026-10-16" required>
+                        <input type="date" name="showDate" id="inputShowDate" class="form-input" value="${selectedDate}" required>
                     </div>
 
                     <div class="form-group">
@@ -1120,20 +1100,6 @@ function switchView(mode) {
     }
 }
 
-// Chọn Date Pill
-function selectDatePill(element, dateStr) {
-    document.querySelectorAll('.date-pill').forEach(el => el.classList.remove('active'));
-    element.classList.add('active');
-    document.getElementById('customDatePicker').value = dateStr;
-    document.getElementById('inputShowDate').value = dateStr;
-}
-
-// Khi thay đổi ngày bằng date picker
-function onCustomDateChange(val) {
-    document.getElementById('inputShowDate').value = val;
-    document.querySelectorAll('.date-pill').forEach(el => el.classList.remove('active'));
-}
-
 // Bộ lọc danh sách bảng
 function applyShowtimeFilter() {
     const movieFilter = document.getElementById('filterMovie').value.toLowerCase();
@@ -1222,7 +1188,7 @@ function openAddShowtimeModal() {
     document.getElementById('showtimeModalTitle').innerHTML = '➕ Lên Lịch Chiếu Mới';
     document.getElementById('inputShowtimeID').value = '';
     document.getElementById('showtimeForm').reset();
-    document.getElementById('inputShowDate').value = document.getElementById('customDatePicker').value || '2026-10-16';
+    document.getElementById('inputShowDate').value = document.getElementById('customDatePicker').value;
     document.getElementById('inputStartTime').value = '14:30';
     onMovieSelectChange();
     suggestTicketPrice();

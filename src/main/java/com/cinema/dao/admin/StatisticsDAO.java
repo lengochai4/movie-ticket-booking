@@ -128,6 +128,24 @@ public class StatisticsDAO {
         }
     }
 
+    // Số đơn đặt vé chưa hủy (PENDING hoặc PAID) của 1 suất chiếu, dùng để chặn sửa/xóa suất đã bán vé
+    public long countOpenBookings(String showtimeId, String cancelledStatus) {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            Object count = em.createNativeQuery(
+                    "SELECT COUNT(*) FROM bookings b WHERE b.showtime_id = ?1 AND b.status <> ?2")
+                    .setParameter(1, showtimeId)
+                    .setParameter(2, cancelledStatus)
+                    .getSingleResult();
+            return (long) num(count);
+        } catch (Exception e) {
+            System.err.println("[StatisticsDAO] Lỗi countOpenBookings: " + e.getMessage());
+            throw new RuntimeException(e);
+        } finally {
+            em.close();
+        }
+    }
+
     private Query bind(Query q, String paidStatus, LocalDateTime from, LocalDateTime to) {
         return q.setParameter(1, paidStatus).setParameter(2, from).setParameter(3, to);
     }

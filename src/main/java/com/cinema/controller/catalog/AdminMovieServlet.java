@@ -1,7 +1,9 @@
 package com.cinema.controller.catalog;
 
 import com.cinema.dao.catalog.MovieDAO;
+import com.cinema.dao.catalog.ShowtimeDAO;
 import com.cinema.entity.Movie;
+import com.cinema.entity.Showtime;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -12,6 +14,8 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +24,9 @@ import java.util.stream.Collectors;
 public class AdminMovieServlet extends HttpServlet {
 
     private final MovieDAO movieDAO = new MovieDAO();
+    private final ShowtimeDAO showtimeDAO = new ShowtimeDAO();
+
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -149,14 +156,16 @@ public class AdminMovieServlet extends HttpServlet {
             return;
         }
 
-        LocalDate releaseDate = null;
-        if (releaseDateStr != null) {
-            try {
-                releaseDate = LocalDate.parse(releaseDateStr);
-            } catch (Exception e) {
-                session.setAttribute("errorMessage", "Ngày khởi chiếu không hợp lệ.");
-                return;
-            }
+        if (releaseDateStr == null) {
+            session.setAttribute("errorMessage", "Vui lòng nhập ngày khởi chiếu. Phim không có ngày khởi chiếu sẽ không hiển thị cho khách.");
+            return;
+        }
+        LocalDate releaseDate;
+        try {
+            releaseDate = LocalDate.parse(releaseDateStr);
+        } catch (Exception e) {
+            session.setAttribute("errorMessage", "Ngày khởi chiếu không hợp lệ.");
+            return;
         }
 
         // 2. Lưu vào database
@@ -168,6 +177,30 @@ public class AdminMovieServlet extends HttpServlet {
                     session.setAttribute("errorMessage", "Phim cần sửa không còn tồn tại.");
                     return;
                 }
+                // Đổi thời lượng thì giờ kết thúc của các suất sắp tới phải tính lại,
+                // nếu không việc kiểm tra trùng giờ cùng phòng sẽ dùng giờ kết thúc cũ
+                int recalculated = 0;
+                if (duration != movie.getDuration() && movie.getShowtimes() != null) {
+                    LocalDateTime now = LocalDateTime.now();
+                    for (Showtime st : movie.getShowtimes()) {
+                        if (st.getStartTime() == null || st.getStartTime().isBefore(now)) continue;
+                        LocalDateTime newEnd = st.getStartTime().plusMinutes(duration + 15);
+                        List<Showtime> overlaps = showtimeDAO.findOverlapping(
+                                st.getRoom().getRoomID(), st.getStartTime(), newEnd, st.getShowtimeID());
+                        if (!overlaps.isEmpty()) {
+                            Showtime conflict = overlaps.get(0);
+                            session.setAttribute("errorMessage", "Không thể đổi thời lượng thành " + duration
+                                    + " phút: suất chiếu lúc " + st.getFormattedStartTime() + " ngày " + st.getFormattedDate()
+                                    + " ở " + st.getRoom().getName() + " sẽ kết thúc lúc " + newEnd.format(TIME_FORMAT)
+                                    + ", trùng với suất \"" + (conflict.getMovie() != null ? conflict.getMovie().getTitle() : "")
+                                    + "\" lúc " + conflict.getTimeRange() + ". Hãy dời suất chiếu trước.");
+                            return;
+                        }
+                        st.setEndTime(newEnd);
+                        recalculated++;
+                    }
+                }
+
                 movie.setTitle(title);
                 movie.setDirector(director);
                 movie.setGenre(genre);
@@ -179,7 +212,8 @@ public class AdminMovieServlet extends HttpServlet {
                 movie.setDescription(description);
                 movieDAO.update(movie);
                 System.out.println("[ADMIN MOVIE] Đã cập nhật phim: " + title + " (ID: " + id + ")");
-                session.setAttribute("successMessage", "Đã cập nhật phim \"" + title + "\".");
+                session.setAttribute("successMessage", "Đã cập nhật phim \"" + title + "\"."
+                        + (recalculated > 0 ? " Đã tính lại giờ kết thúc của " + recalculated + " suất chiếu sắp tới." : ""));
             } else {
                 // Thêm phim mới
                 Movie newMovie = new Movie(title, description, posterURL, director, duration, releaseDate);

@@ -1,11 +1,13 @@
 package com.cinema.controller.booking;
 
+import com.cinema.dao.admin.StatisticsDAO;
 import com.cinema.dao.catalog.MovieDAO;
 import com.cinema.dao.catalog.RoomDAO;
 import com.cinema.dao.catalog.ShowtimeDAO;
 import com.cinema.entity.Movie;
 import com.cinema.entity.Room;
 import com.cinema.entity.Showtime;
+import com.cinema.enums.BookingStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -14,13 +16,16 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -30,8 +35,11 @@ public class AdminShowtimeServlet extends HttpServlet {
     private final ShowtimeDAO showtimeDAO = new ShowtimeDAO();
     private final MovieDAO movieDAO = new MovieDAO();
     private final RoomDAO roomDAO = new RoomDAO();
+    private final StatisticsDAO statisticsDAO = new StatisticsDAO();
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final String CANCELLED = BookingStatus.CANCELLED.name();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -102,6 +110,7 @@ public class AdminShowtimeServlet extends HttpServlet {
         request.setAttribute("totalRoomsCount", totalRoomsCount);
         request.setAttribute("upcoming90MinCount", upcoming90MinCount);
         request.setAttribute("selectedDate", selectedDate.toString());
+        request.setAttribute("datePills", buildDatePills(today));
 
         // Chuyển tiếp tới giao diện quản lý lịch chiếu
         request.getRequestDispatcher("/WEB-INF/views/admin/showtimes.jsp").forward(request, response);
@@ -163,10 +172,44 @@ public class AdminShowtimeServlet extends HttpServlet {
             }
 
             // 2. Giờ kết thúc = giờ bắt đầu + thời lượng phim + 15 phút dọn rạp (tự qua ngày nếu chiếu khuya)
+            LocalDateTime now = LocalDateTime.now();
             LocalDateTime start = LocalDateTime.of(showDate, startTime);
             LocalDateTime end = start.plusMinutes(movie.getDuration() > 0 ? movie.getDuration() + 15 : 120);
 
-            // 3. Kiểm tra trùng giờ với suất chiếu khác trong cùng phòng
+            // 3. Với suất đang sửa: không sửa suất đã bắt đầu; suất đã có đơn đặt vé thì chỉ được đổi giá
+            Showtime existing = null;
+            if (showtimeId != null) {
+                existing = showtimeDAO.findById(showtimeId);
+                if (existing == null) {
+                    session.setAttribute("errorMessage", "Suất chiếu cần sửa không còn tồn tại.");
+                    return showDate.toString();
+                }
+                if (existing.getStartTime().isBefore(now)) {
+                    session.setAttribute("errorMessage", "Suất chiếu lúc " + existing.getTimeRange() + " ngày "
+                            + existing.getFormattedDate() + " đã bắt đầu hoặc đã chiếu xong, không thể sửa.");
+                    return showDate.toString();
+                }
+                boolean scheduleChanged = !existing.getMovie().getMovieID().equals(movie.getMovieID())
+                        || !existing.getRoom().getRoomID().equals(room.getRoomID())
+                        || !existing.getStartTime().equals(start);
+                if (scheduleChanged) {
+                    long openBookings = statisticsDAO.countOpenBookings(showtimeId, CANCELLED);
+                    if (openBookings > 0) {
+                        session.setAttribute("errorMessage", "Suất chiếu này đã có " + openBookings
+                                + " đơn đặt vé nên chỉ được đổi giá vé. Muốn đổi phim, phòng hoặc giờ chiếu, hãy hủy các đơn đó trước.");
+                        return showDate.toString();
+                    }
+                }
+            }
+
+            // 4. Không xếp suất chiếu vào thời điểm đã qua
+            if (start.isBefore(now)) {
+                session.setAttribute("errorMessage", "Không thể xếp suất chiếu vào thời điểm đã qua ("
+                        + start.format(TIME_FORMAT) + " ngày " + showDate.format(DATE_FORMAT) + ").");
+                return showDate.toString();
+            }
+
+            // 5. Kiểm tra trùng giờ với suất chiếu khác trong cùng phòng
             List<Showtime> overlaps = showtimeDAO.findOverlapping(room.getRoomID(), start, end, showtimeId);
             if (!overlaps.isEmpty()) {
                 Showtime conflict = overlaps.get(0);
@@ -177,13 +220,8 @@ public class AdminShowtimeServlet extends HttpServlet {
                 return showDate.toString();
             }
 
-            // 4. Lưu vào database
-            if (showtimeId != null) {
-                Showtime existing = showtimeDAO.findById(showtimeId);
-                if (existing == null) {
-                    session.setAttribute("errorMessage", "Suất chiếu cần sửa không còn tồn tại.");
-                    return showDate.toString();
-                }
+            // 6. Lưu vào database
+            if (existing != null) {
                 existing.setMovie(movie);
                 existing.setRoom(room);
                 existing.setStartTime(start);
@@ -216,14 +254,36 @@ public class AdminShowtimeServlet extends HttpServlet {
             return;
         }
         try {
+            // Không xóa suất còn đơn đặt vé chưa hủy (vé của khách sẽ mất suất chiếu)
+            long openBookings = statisticsDAO.countOpenBookings(showtimeId, CANCELLED);
+            if (openBookings > 0) {
+                session.setAttribute("errorMessage", "Suất chiếu này còn " + openBookings
+                        + " đơn đặt vé chưa hủy, không thể xóa. Hãy hủy các đơn đó ở trang Quản lý đặt vé trước.");
+                return;
+            }
             showtimeDAO.delete(showtimeId);
             System.out.println("[ADMIN SHOWTIME] Đã hủy suất chiếu ID: " + showtimeId + ", Lý do: " + reason);
             session.setAttribute("successMessage", "Đã hủy suất chiếu thành công.");
         } catch (RuntimeException e) {
             System.err.println("[ADMIN SHOWTIME] Lỗi khi xóa suất chiếu: " + e.getMessage());
-            e.printStackTrace();
-            session.setAttribute("errorMessage", "Không thể hủy suất chiếu do lỗi hệ thống. Vui lòng thử lại.");
+            if (isForeignKeyViolation(e)) {
+                // Đơn đã hủy vẫn giữ tham chiếu tới suất chiếu để lưu lịch sử
+                session.setAttribute("errorMessage", "Suất chiếu này còn lịch sử đơn đặt vé (đã hủy) nên không thể xóa.");
+            } else {
+                e.printStackTrace();
+                session.setAttribute("errorMessage", "Không thể hủy suất chiếu do lỗi hệ thống. Vui lòng thử lại.");
+            }
         }
+    }
+
+    // PostgreSQL trả SQLState 23503 khi vi phạm khóa ngoại (bản ghi đang được bảng khác tham chiếu)
+    private boolean isForeignKeyViolation(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof SQLException && "23503".equals(((SQLException) t).getSQLState())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Nhận giá dạng "90.000", "90,000", "90000" hoặc "90.000 đ" -> 90000.0
@@ -232,6 +292,21 @@ public class AdminShowtimeServlet extends HttpServlet {
         String digits = priceStr.replaceAll("[^0-9]", "");
         if (digits.isEmpty() || digits.length() > 9) return null;
         return Double.valueOf(digits);
+    }
+
+    // 7 ngày kể từ hôm nay cho thanh chọn ngày: {iso: yyyy-MM-dd, dayName: Hôm nay / Thứ 2..., dayNum: dd/MM}
+    private List<Map<String, String>> buildDatePills(LocalDate today) {
+        String[] dayNames = {"Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"};
+        List<Map<String, String>> pills = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            LocalDate d = today.plusDays(i);
+            Map<String, String> pill = new HashMap<>();
+            pill.put("iso", d.toString());
+            pill.put("dayName", i == 0 ? "Hôm nay" : dayNames[d.getDayOfWeek().getValue() - 1]);
+            pill.put("dayNum", d.format(DateTimeFormatter.ofPattern("dd/MM")));
+            pills.add(pill);
+        }
+        return pills;
     }
 
     private String trimToNull(String s) {

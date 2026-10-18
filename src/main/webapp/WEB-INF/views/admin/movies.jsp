@@ -276,8 +276,8 @@
 
                 <%---- Ngày khởi chiếu ----%>
                 <div style="grid-column: 1 / -1;">
-                    <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Ngày khởi chiếu:</label>
-                    <input type="date" name="releaseDate" id="inputReleaseDate"
+                    <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Ngày khởi chiếu (*):</label>
+                    <input type="date" name="releaseDate" id="inputReleaseDate" required
                            style="width: 100%; padding: 10px 12px; border-radius: 6px; background: #0f1217; border: 1px solid rgba(255,255,255,0.15); color: #fff; box-sizing: border-box;">
                 </div>
 
