@@ -16,13 +16,31 @@
             </h1>
             <p class="order-page-subtitle">
                 Xem lại danh sách vé đã đặt, thông tin suất chiếu và mã QR vào phòng chiếu.
+                <c:if test="${ordersBound}">
+                    <br>Điểm thưởng hiện có: <strong>${loyaltyPoints}</strong>
+                </c:if>
             </p>
         </div>
+
+        <c:set var="msgError" value="${not empty errorMessage ? errorMessage : sessionScope.errorMessage}"/>
+        <c:set var="msgSuccess" value="${not empty successMessage ? successMessage : sessionScope.successMessage}"/>
+        <c:remove var="errorMessage" scope="session"/>
+        <c:remove var="successMessage" scope="session"/>
+        <c:if test="${not empty msgError}">
+            <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #f87171; color: #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+                ${msgError}
+            </div>
+        </c:if>
+        <c:if test="${not empty msgSuccess}">
+            <div style="background: rgba(105, 219, 124, 0.15); border: 1px solid #69db7c; color: #69db7c; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+                ${msgSuccess}
+            </div>
+        </c:if>
 
         <%---- 2. Bộ Lọc Trạng Thái Đơn Hàng ----%>
         <div class="order-filter-tabs">
             <button type="button" class="order-tab-btn active" onclick="filterOrders('ALL', this)">
-                Tất cả đơn (<span id="countAll">3</span>)
+                Tất cả đơn (<span id="countAll">${ordersBound ? orderCount : 3}</span>)
             </button>
             <button type="button" class="order-tab-btn" onclick="filterOrders('PAID', this)">
                 Đã thanh toán / Vé hợp lệ
@@ -40,7 +58,7 @@
 
             <c:choose>
                 <%-- KHI CÓ DỮ LIỆU ĐỘNG TỪ BACKEND --%>
-                <c:when test="${not empty orderList}">
+                <c:when test="${ordersBound}">
                     <c:forEach items="${orderList}" var="o">
                         <div class="order-card" data-status="${o.status}">
                             <%---- Header Đơn Vé ----%>
@@ -82,6 +100,11 @@
                                             🍿 Bắp nước: <strong>${o.combos}</strong>
                                         </div>
                                     </c:if>
+                                    <c:if test="${o.status == 'PAID' && o.pointsEarned > 0}">
+                                        <div class="order-combos-text">
+                                            ★ Điểm thưởng: <strong>+${o.pointsEarned}</strong>
+                                        </div>
+                                    </c:if>
                                 </div>
 
                                 <div class="order-card-action">
@@ -92,10 +115,25 @@
                                     <a href="${pageContext.request.contextPath}/order/ticket-detail?id=${o.orderCode}" class="btn-view-ticket">
                                         Xem vé & QR →
                                     </a>
+                                    <c:if test="${o.cancellable}">
+                                        <form action="${pageContext.request.contextPath}/order/cancel" method="post"
+                                              onsubmit="return confirm('Bạn có chắc chắn muốn hủy vé ${o.orderCode}?');">
+                                            <input type="hidden" name="orderCode" value="${o.orderCode}">
+                                            <button type="submit" class="btn-view-ticket">Hủy vé</button>
+                                        </form>
+                                    </c:if>
                                 </div>
                             </div>
                         </div>
                     </c:forEach>
+                    <c:if test="${empty orderList}">
+                        <div class="order-empty-state">
+                            <div class="order-empty-icon">🎟️</div>
+                            <h2 class="order-empty-title">Bạn chưa có đơn đặt vé</h2>
+                            <p class="order-empty-desc">Khi bạn đặt vé thành công, lịch sử và mã QR sẽ hiện ở đây.</p>
+                            <a class="btn-browse-movies" href="${pageContext.request.contextPath}/movies">Xem phim đang chiếu</a>
+                        </div>
+                    </c:if>
                 </c:when>
 
                 <%-- KHI CHƯA CÓ BACKEND: HIỂN THỊ DỮ LIỆU MẪU ĐỂ FRONTEND KIỂM THỬ GIAO DIỆN --%>
