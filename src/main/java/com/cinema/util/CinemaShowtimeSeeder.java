@@ -132,6 +132,7 @@ public class CinemaShowtimeSeeder {
                             st.setRoom(room);
                             st.setStartTime(startDateTime);
                             st.setEndTime(endDateTime);
+                            st.setPrice(90000.0);
 
                             em.persist(st);
                             showtimeCreated++;

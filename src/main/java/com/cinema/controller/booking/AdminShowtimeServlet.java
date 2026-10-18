@@ -11,11 +11,13 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +30,8 @@ public class AdminShowtimeServlet extends HttpServlet {
     private final ShowtimeDAO showtimeDAO = new ShowtimeDAO();
     private final MovieDAO movieDAO = new MovieDAO();
     private final RoomDAO roomDAO = new RoomDAO();
+
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -110,67 +114,127 @@ public class AdminShowtimeServlet extends HttpServlet {
         String path = request.getServletPath();
 
         if ("/admin/showtimes/save".equals(path)) {
-            String showtimeId = request.getParameter("showtimeID");
-            String movieId = request.getParameter("movieID");
-            String roomId = request.getParameter("roomID");
-            String showDateStr = request.getParameter("showDate");
-            String startTimeStr = request.getParameter("startTime");
-            String endTimeStr = request.getParameter("endTime");
-
-            try {
-                LocalDate showDate = (showDateStr != null && !showDateStr.trim().isEmpty()) 
-                        ? LocalDate.parse(showDateStr.trim()) : LocalDate.now();
-                LocalTime startTime = (startTimeStr != null && !startTimeStr.trim().isEmpty())
-                        ? LocalTime.parse(startTimeStr.trim()) : LocalTime.of(9, 0);
-                LocalTime endTime = (endTimeStr != null && !endTimeStr.trim().isEmpty())
-                        ? LocalTime.parse(endTimeStr.trim()) : startTime.plusMinutes(120);
-
-                LocalDateTime start = LocalDateTime.of(showDate, startTime);
-                LocalDateTime end = LocalDateTime.of(showDate, endTime);
-
-                Movie movie = movieDAO.findById(movieId);
-                Room room = roomDAO.findById(roomId);
-
-                if (movie != null && room != null) {
-                    if (showtimeId != null && !showtimeId.trim().isEmpty()) {
-                        Showtime existing = showtimeDAO.findById(showtimeId.trim());
-                        if (existing != null) {
-                            existing.setMovie(movie);
-                            existing.setRoom(room);
-                            existing.setStartTime(start);
-                            existing.setEndTime(end);
-                            showtimeDAO.update(existing);
-                            System.out.println("[ADMIN SHOWTIME] Đã cập nhật suất chiếu ID: " + showtimeId);
-                        }
-                    } else {
-                        Showtime newShowtime = new Showtime(null, start, end, movie, room);
-                        showtimeDAO.insert(newShowtime);
-                        System.out.println("[ADMIN SHOWTIME] Đã thêm suất chiếu mới cho phim: " + movie.getTitle());
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("[ADMIN SHOWTIME] Lỗi khi lưu suất chiếu: " + e.getMessage());
-                e.printStackTrace();
-            }
-
-            response.sendRedirect(request.getContextPath() + "/admin/showtimes");
+            String redirectDate = handleSave(request);
+            response.sendRedirect(request.getContextPath() + "/admin/showtimes"
+                    + (redirectDate != null ? "?date=" + redirectDate : ""));
             return;
         } else if ("/admin/showtimes/delete".equals(path)) {
-            String showtimeId = request.getParameter("showtimeID");
-            String reason = request.getParameter("cancelReason");
-            if (showtimeId != null && !showtimeId.trim().isEmpty()) {
-                try {
-                    showtimeDAO.delete(showtimeId.trim());
-                    System.out.println("[ADMIN SHOWTIME] Đã hủy suất chiếu ID: " + showtimeId + ", Lý do: " + reason);
-                } catch (Exception e) {
-                    System.err.println("[ADMIN SHOWTIME] Lỗi khi xóa suất chiếu: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
+            handleDelete(request);
             response.sendRedirect(request.getContextPath() + "/admin/showtimes");
             return;
         }
 
         doGet(request, response);
+    }
+
+    // Lưu suất chiếu (thêm mới hoặc cập nhật). Trả về ngày chiếu (yyyy-MM-dd) để quay lại đúng ngày
+    private String handleSave(HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        String showtimeId = trimToNull(request.getParameter("showtimeID"));
+        String movieId = trimToNull(request.getParameter("movieID"));
+        String roomId = trimToNull(request.getParameter("roomID"));
+        String showDateStr = trimToNull(request.getParameter("showDate"));
+        String startTimeStr = trimToNull(request.getParameter("startTime"));
+        String priceStr = trimToNull(request.getParameter("price"));
+
+        // 1. Kiểm tra dữ liệu đầu vào
+        LocalDate showDate;
+        LocalTime startTime;
+        try {
+            showDate = LocalDate.parse(showDateStr);
+            startTime = LocalTime.parse(startTimeStr);
+        } catch (Exception e) {
+            session.setAttribute("errorMessage", "Ngày chiếu hoặc giờ bắt đầu không hợp lệ.");
+            return null;
+        }
+
+        Double price = parsePrice(priceStr);
+        if (price == null || price <= 0) {
+            session.setAttribute("errorMessage", "Giá vé không hợp lệ. Vui lòng nhập số tiền lớn hơn 0 (VD: 90.000).");
+            return showDate.toString();
+        }
+
+        try {
+            Movie movie = movieId != null ? movieDAO.findById(movieId) : null;
+            Room room = roomId != null ? roomDAO.findById(roomId) : null;
+            if (movie == null || room == null) {
+                session.setAttribute("errorMessage", "Không tìm thấy phim hoặc phòng chiếu đã chọn.");
+                return showDate.toString();
+            }
+
+            // 2. Giờ kết thúc = giờ bắt đầu + thời lượng phim + 15 phút dọn rạp (tự qua ngày nếu chiếu khuya)
+            LocalDateTime start = LocalDateTime.of(showDate, startTime);
+            LocalDateTime end = start.plusMinutes(movie.getDuration() > 0 ? movie.getDuration() + 15 : 120);
+
+            // 3. Kiểm tra trùng giờ với suất chiếu khác trong cùng phòng
+            List<Showtime> overlaps = showtimeDAO.findOverlapping(room.getRoomID(), start, end, showtimeId);
+            if (!overlaps.isEmpty()) {
+                Showtime conflict = overlaps.get(0);
+                session.setAttribute("errorMessage", "Phòng " + room.getName() + " đã có suất chiếu \""
+                        + (conflict.getMovie() != null ? conflict.getMovie().getTitle() : "")
+                        + "\" lúc " + conflict.getTimeRange() + " ngày " + conflict.getFormattedDate()
+                        + ", trùng với khung giờ " + start.format(TIME_FORMAT) + " - " + end.format(TIME_FORMAT) + ".");
+                return showDate.toString();
+            }
+
+            // 4. Lưu vào database
+            if (showtimeId != null) {
+                Showtime existing = showtimeDAO.findById(showtimeId);
+                if (existing == null) {
+                    session.setAttribute("errorMessage", "Suất chiếu cần sửa không còn tồn tại.");
+                    return showDate.toString();
+                }
+                existing.setMovie(movie);
+                existing.setRoom(room);
+                existing.setStartTime(start);
+                existing.setEndTime(end);
+                existing.setPrice(price);
+                showtimeDAO.update(existing);
+                session.setAttribute("successMessage", "Đã cập nhật suất chiếu \"" + movie.getTitle() + "\" lúc "
+                        + existing.getTimeRange() + " ngày " + existing.getFormattedDate() + ".");
+            } else {
+                Showtime newShowtime = new Showtime(null, start, end, movie, room);
+                newShowtime.setPrice(price);
+                showtimeDAO.insert(newShowtime);
+                session.setAttribute("successMessage", "Đã thêm suất chiếu \"" + movie.getTitle() + "\" lúc "
+                        + newShowtime.getTimeRange() + " ngày " + newShowtime.getFormattedDate() + ".");
+            }
+        } catch (RuntimeException e) {
+            System.err.println("[ADMIN SHOWTIME] Lỗi khi lưu suất chiếu: " + e.getMessage());
+            e.printStackTrace();
+            session.setAttribute("errorMessage", "Không thể lưu suất chiếu do lỗi hệ thống. Vui lòng thử lại.");
+        }
+        return showDate.toString();
+    }
+
+    private void handleDelete(HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        String showtimeId = trimToNull(request.getParameter("showtimeID"));
+        String reason = request.getParameter("cancelReason");
+        if (showtimeId == null) {
+            session.setAttribute("errorMessage", "Thiếu mã suất chiếu cần hủy.");
+            return;
+        }
+        try {
+            showtimeDAO.delete(showtimeId);
+            System.out.println("[ADMIN SHOWTIME] Đã hủy suất chiếu ID: " + showtimeId + ", Lý do: " + reason);
+            session.setAttribute("successMessage", "Đã hủy suất chiếu thành công.");
+        } catch (RuntimeException e) {
+            System.err.println("[ADMIN SHOWTIME] Lỗi khi xóa suất chiếu: " + e.getMessage());
+            e.printStackTrace();
+            session.setAttribute("errorMessage", "Không thể hủy suất chiếu do lỗi hệ thống. Vui lòng thử lại.");
+        }
+    }
+
+    // Nhận giá dạng "90.000", "90,000", "90000" hoặc "90.000 đ" -> 90000.0
+    private Double parsePrice(String priceStr) {
+        if (priceStr == null) return null;
+        String digits = priceStr.replaceAll("[^0-9]", "");
+        if (digits.isEmpty() || digits.length() > 9) return null;
+        return Double.valueOf(digits);
+    }
+
+    private String trimToNull(String s) {
+        return (s == null || s.trim().isEmpty()) ? null : s.trim();
     }
 }

@@ -547,6 +547,23 @@
             </div>
         </header>
 
+        <%---- ================= THÔNG BÁO HỆ THỐNG (flash message từ session) ================= ----%>
+        <c:set var="msgError" value="${not empty errorMessage ? errorMessage : sessionScope.errorMessage}" />
+        <c:set var="msgSuccess" value="${not empty successMessage ? successMessage : sessionScope.successMessage}" />
+
+        <c:if test="${not empty msgError}">
+            <div style="background: rgba(120, 0, 0, 0.4); border: 1px solid #c92a2a; color: #ff8787; padding: 12px 18px; border-radius: 8px; font-size: 14px;">
+                <span>⚠️ <c:out value="${msgError}"/></span>
+            </div>
+            <c:remove var="errorMessage" scope="session" />
+        </c:if>
+        <c:if test="${not empty msgSuccess}">
+            <div style="background: rgba(43, 138, 62, 0.25); border: 1px solid #2b8a3e; color: #69db7c; padding: 12px 18px; border-radius: 8px; font-size: 14px;">
+                <span>✅ <c:out value="${msgSuccess}"/></span>
+            </div>
+            <c:remove var="successMessage" scope="session" />
+        </c:if>
+
         <%---- ================= 2. 4 THẺ THỐNG KÊ NHANH (KPIS) ================= ----%>
         <section class="stats-grid">
             <div class="stat-card">
@@ -618,7 +635,7 @@
                 </a>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <input type="date" id="customDatePicker" class="date-custom-input" value="2026-10-16" onchange="onCustomDateChange(this.value)">
+                <input type="date" id="customDatePicker" class="date-custom-input" value="${not empty selectedDate ? selectedDate : '2026-10-16'}" onchange="onCustomDateChange(this.value)">
             </div>
         </section>
 
@@ -724,7 +741,7 @@
                                     <td class="table-actions-cell">
                                         <div class="table-actions-wrap">
                                             <button type="button" class="btn-table-action edit" title="Chỉnh sửa suất chiếu" 
-                                                    onclick="openEditShowtimeModal('${st.showtimeID}', '${st.movie.title}', '${st.room.name}', '2D Digital', '${st.formattedDateIso}', '${st.formattedStartTime}', '${st.formattedEndTime}', '${st.price}')">
+                                                    onclick="openEditShowtimeModal('${st.showtimeID}', '${st.movie.movieID}', '${st.room.roomID}', '2D Digital', '${st.formattedDateIso}', '${st.formattedStartTime}', '${st.formattedEndTime}', '<fmt:formatNumber value="${st.price != null ? st.price : 90000}" groupingUsed="false" maxFractionDigits="0"/>')">
                                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
