@@ -10,4 +10,6 @@
     <entity class="com.cinema.entity.Booking" metadata-complete="false"/>
     <entity class="com.cinema.entity.Ticket" metadata-complete="false"/>
     <entity class="com.cinema.entity.LoyaltyAccount" metadata-complete="false"/>
+    <entity class="com.cinema.entity.User" metadata-complete="false"/>
+    <entity class="com.cinema.entity.Review" metadata-complete="false"/>
 </entity-mappings>
