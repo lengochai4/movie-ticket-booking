@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS User (
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20),
     role INT DEFAULT 0, -- 0: User, 1: Admin
-    loyaltyPoints INT DEFAULT 0
+    loyaltyPoints INT DEFAULT 0,
+    isLocked TINYINT(1) DEFAULT 0 -- 0: active, 1: locked
 );
 
 -- 2. Cinema: Rap chieu phim

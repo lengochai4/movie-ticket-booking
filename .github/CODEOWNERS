@@ -7,6 +7,7 @@
 /src/main/webapp/WEB-INF/views/auth/                     @an
 /src/main/java/com/cinema/*/review/                      @an
 /src/main/webapp/WEB-INF/views/review/                   @an
+/src/main/webapp/assets/css/auth.css                      @an
 /src/main/java/com/cinema/*/catalog/                     @phuong
 /src/main/webapp/WEB-INF/views/catalog/                  @phuong
 /src/main/webapp/WEB-INF/views/common/                   @phuong

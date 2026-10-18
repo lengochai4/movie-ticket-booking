@@ -12,6 +12,7 @@ public class User implements Serializable {
     private String phone;
     private int role; // 0: User, 1: Admin
     private int loyaltyPoints;
+    private boolean isLocked; // false: active, true: locked
 
     public User() {
     }
@@ -24,6 +25,7 @@ public class User implements Serializable {
         this.phone = phone;
         this.role = role;
         this.loyaltyPoints = loyaltyPoints;
+        this.isLocked = false;
     }
 
     public int getUserID() {
@@ -82,6 +84,14 @@ public class User implements Serializable {
         this.loyaltyPoints = loyaltyPoints;
     }
 
+    public boolean isLocked() {
+        return isLocked;
+    }
+
+    public void setLocked(boolean locked) {
+        isLocked = locked;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -91,6 +101,7 @@ public class User implements Serializable {
                 ", phone='" + phone + '\'' +
                 ", role=" + role +
                 ", loyaltyPoints=" + loyaltyPoints +
+                ", isLocked=" + isLocked +
                 '}';
     }
 }
