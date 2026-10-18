@@ -1,8 +1,6 @@
 package com.cinema.controller.booking;
 
 import com.cinema.dao.admin.StatisticsDAO;
-import com.cinema.dao.catalog.MovieDAO;
-import com.cinema.dao.catalog.ShowtimeDAO;
 import com.cinema.enums.BookingStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -26,8 +24,6 @@ public class AdminDashboardServlet extends HttpServlet {
     private static final List<String> PERIODS = Arrays.asList("today", "7days", "month", "year");
 
     private final StatisticsDAO statisticsDAO = new StatisticsDAO();
-    private final MovieDAO movieDAO = new MovieDAO();
-    private final ShowtimeDAO showtimeDAO = new ShowtimeDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -54,7 +50,7 @@ public class AdminDashboardServlet extends HttpServlet {
                 prevFrom = from.minusDays(1);
                 bucketUnit = ChronoUnit.HOURS;
                 chartTitle = "📈 Doanh Thu Theo Giờ (Hôm Nay)";
-                compareLabel = "so với hôm qua";
+                compareLabel = "so với cùng giờ hôm qua";
                 break;
             case "month":
                 from = today.withDayOfMonth(1).atStartOfDay();
@@ -62,7 +58,7 @@ public class AdminDashboardServlet extends HttpServlet {
                 prevFrom = from.minusMonths(1);
                 bucketUnit = ChronoUnit.DAYS;
                 chartTitle = "📈 Doanh Thu Theo Ngày (Tháng " + today.getMonthValue() + "/" + today.getYear() + ")";
-                compareLabel = "so với tháng trước";
+                compareLabel = "so với cùng kỳ tháng trước";
                 break;
             case "year":
                 from = today.withDayOfYear(1).atStartOfDay();
@@ -70,7 +66,7 @@ public class AdminDashboardServlet extends HttpServlet {
                 prevFrom = from.minusYears(1);
                 bucketUnit = ChronoUnit.MONTHS;
                 chartTitle = "📈 Doanh Thu Theo Tháng (Năm " + today.getYear() + ")";
-                compareLabel = "so với năm " + (today.getYear() - 1);
+                compareLabel = "so với cùng kỳ năm " + (today.getYear() - 1);
                 break;
             default: // 7days
                 from = today.minusDays(6).atStartOfDay();
@@ -101,7 +97,10 @@ public class AdminDashboardServlet extends HttpServlet {
             ticketRevenue = summary[1];
             comboRevenue = summary[2];
             tickets = summary[4];
-            prevRevenue = statisticsDAO.getSummary(PAID, prevFrom, from)[0];
+            // Kỳ trước chỉ lấy đúng khoảng thời gian bằng phần đã trôi qua của kỳ này
+            LocalDateTime cutoff = LocalDateTime.now().isBefore(to) ? LocalDateTime.now() : to;
+            LocalDateTime prevTo = prevFrom.plus(java.time.Duration.between(from, cutoff));
+            prevRevenue = statisticsDAO.getSummary(PAID, prevFrom, prevTo)[0];
             seatFill = statisticsDAO.getSeatFill(PAID, from, to);
 
             for (Object[] row : statisticsDAO.getPaidBookingTimes(PAID, from, to)) {
@@ -135,7 +134,7 @@ public class AdminDashboardServlet extends HttpServlet {
         }
 
         // 4. Định dạng dữ liệu cho JSP
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.of("vi", "VN"));
         symbols.setGroupingSeparator('.');
         DecimalFormat df = new DecimalFormat("#,###", symbols);
         df.setGroupingUsed(true);
@@ -175,8 +174,6 @@ public class AdminDashboardServlet extends HttpServlet {
         request.setAttribute("chartValues", chartValues);
         request.setAttribute("cinemaRevenue", cinemaRows);
         request.setAttribute("topMovies", topMovies);
-        request.setAttribute("totalMoviesCount", movieDAO.findAll().size());
-        request.setAttribute("totalShowtimesCount", showtimeDAO.findAll().size());
 
         request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp").forward(request, response);
     }

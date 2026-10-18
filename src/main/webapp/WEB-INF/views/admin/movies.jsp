@@ -160,18 +160,18 @@
                                     <tr>
                                         <%---- Poster Thumbnail ----%>
                                         <td style="text-align: center;">
-                                            <img src="${m.posterURL}" alt="${m.title}" 
+                                            <img src="<c:out value='${m.posterURL}'/>" alt="<c:out value='${m.title}'/>" 
                                                  style="width: 50px; height: 70px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
                                         </td>
                                         <%---- Tên phim & Thời lượng ----%>
                                         <td>
-                                            <div style="font-weight: 700; color: #ffffff; font-size: 15px;">${m.title}</div>
+                                            <div style="font-weight: 700; color: #ffffff; font-size: 15px;"><c:out value='${m.title}'/></div>
                                             <span style="font-size: 12px; color: #94a3b8;">⏱️ ${m.duration} phút</span>
                                         </td>
                                         <%---- Đạo diễn ----%>
-                                        <td>${m.director}</td>
+                                        <td><c:out value='${m.director}'/></td>
                                         <%---- Thể loại ----%>
-                                        <td><span style="color: #cbd5e1; font-size: 13px;">${m.genre}</span></td>
+                                        <td><span style="color: #cbd5e1; font-size: 13px;"><c:out value='${m.genre}'/></span></td>
                                         <%---- Ngày khởi chiếu ----%>
                                         <td><span style="color: #94a3b8; font-size: 13px;">${m.releaseDate}</span></td>
                                         <%---- Phân loại độ tuổi ----%>

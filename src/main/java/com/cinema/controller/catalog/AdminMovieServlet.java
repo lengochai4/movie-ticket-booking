@@ -246,7 +246,7 @@ public class AdminMovieServlet extends HttpServlet {
             System.err.println("[ADMIN MOVIE] Lỗi khi xóa phim: " + e.getMessage());
             if (isForeignKeyViolation(e)) {
                 session.setAttribute("errorMessage",
-                        "Không thể xóa phim vì đã có vé được đặt cho suất chiếu của phim này.");
+                        "Không thể xóa phim vì suất chiếu của phim này đã có đơn đặt vé (kể cả đơn đã hủy được lưu làm lịch sử).");
             } else {
                 e.printStackTrace();
                 session.setAttribute("errorMessage", "Không thể xóa phim do lỗi hệ thống. Vui lòng thử lại.");

@@ -22,12 +22,14 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @WebServlet(urlPatterns = {"/admin/showtimes", "/admin/showtimes/save", "/admin/showtimes/delete"})
 public class AdminShowtimeServlet extends HttpServlet {
@@ -40,6 +42,7 @@ public class AdminShowtimeServlet extends HttpServlet {
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final String CANCELLED = BookingStatus.CANCELLED.name();
+    private static final String PAID = BookingStatus.PAID.name();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -80,28 +83,39 @@ public class AdminShowtimeServlet extends HttpServlet {
         int totalRoomsCount = allRooms.isEmpty() ? Math.max(activeRoomIds.size(), 1) : allRooms.size();
         int activeRoomsCount = activeRoomIds.size();
 
-        // Tỷ lệ lấp đầy ghế trung bình
-        String avgOccupancy = todayShowtimesCount > 0 ? "72.4%" : "0%";
-
-        // 3. Lọc danh sách theo phim, phòng, định dạng, trạng thái nếu có
-        String movieIdFilter = request.getParameter("movieID");
-        String roomIdFilter = request.getParameter("roomID");
-        String statusFilter = request.getParameter("status");
-
-        List<Showtime> filteredShowtimes = showtimesForDate;
-        if (movieIdFilter != null && !movieIdFilter.trim().isEmpty()) {
-            filteredShowtimes = filteredShowtimes.stream()
-                    .filter(s -> s.getMovie() != null && movieIdFilter.trim().equals(s.getMovie().getMovieID()))
-                    .collect(Collectors.toList());
-        }
-        if (roomIdFilter != null && !roomIdFilter.trim().isEmpty()) {
-            filteredShowtimes = filteredShowtimes.stream()
-                    .filter(s -> s.getRoom() != null && roomIdFilter.trim().equals(s.getRoom().getRoomID()))
-                    .collect(Collectors.toList());
+        // 3. Số vé đã bán / tỷ lệ lấp đầy (đọc bookings, chỉ tính đơn PAID)
+        String avgOccupancy = "0%";
+        Map<String, Long> soldById = new HashMap<>();
+        try {
+            double[] fill = statisticsDAO.getSeatFill(PAID, today.atStartOfDay(), today.plusDays(1).atStartOfDay());
+            if (fill[1] > 0) {
+                avgOccupancy = String.format(Locale.US, "%.1f%%", fill[0] * 100.0 / fill[1]);
+            }
+            soldById = statisticsDAO.getSoldTicketsByShowtime(PAID, selectedDate.atStartOfDay(), selectedDate.plusDays(1).atStartOfDay());
+        } catch (RuntimeException e) {
+            System.err.println("[ADMIN SHOWTIME] Lỗi khi đọc số vé đã bán: " + e.getMessage());
+            avgOccupancy = "—";
         }
 
-        // 4. Đưa dữ liệu động vào request
-        request.setAttribute("showtimeList", filteredShowtimes);
+        // 4. Trạng thái và % lấp đầy từng suất của ngày đang xem
+        //    ENDED: đã bắt đầu/đã chiếu; SOON: bắt đầu trong 90 phút tới; OPEN: đang mở bán
+        Map<String, String> statusById = new HashMap<>();
+        Map<String, Integer> fillById = new HashMap<>();
+        for (Showtime s : showtimesForDate) {
+            String status = !s.getStartTime().isAfter(now) ? "ENDED"
+                    : (s.getStartTime().isBefore(nowPlus90) ? "SOON" : "OPEN");
+            statusById.put(s.getShowtimeID(), status);
+            int capacity = s.getRoom() != null ? s.getRoom().getCapacity() : 0;
+            long sold = soldById.getOrDefault(s.getShowtimeID(), 0L);
+            fillById.put(s.getShowtimeID(), capacity > 0 ? (int) Math.min(100, Math.round(sold * 100.0 / capacity)) : 0);
+        }
+
+        // 5. Đưa dữ liệu động vào request
+        request.setAttribute("showtimeList", showtimesForDate);
+        request.setAttribute("statusById", statusById);
+        request.setAttribute("soldById", soldById);
+        request.setAttribute("fillById", fillById);
+        request.setAttribute("timelineRows", buildTimelineRows(showtimesForDate));
         request.setAttribute("movieList", movieDAO.findAll());
         request.setAttribute("roomList", allRooms);
         request.setAttribute("todayShowtimesCount", todayShowtimesCount);
@@ -129,7 +143,11 @@ public class AdminShowtimeServlet extends HttpServlet {
             return;
         } else if ("/admin/showtimes/delete".equals(path)) {
             handleDelete(request);
-            response.sendRedirect(request.getContextPath() + "/admin/showtimes");
+            String backDate = null;
+            try {
+                backDate = LocalDate.parse(trimToNull(request.getParameter("date"))).toString();
+            } catch (Exception ignored) {}
+            response.sendRedirect(request.getContextPath() + "/admin/showtimes" + (backDate != null ? "?date=" + backDate : ""));
             return;
         }
 
@@ -292,6 +310,41 @@ public class AdminShowtimeServlet extends HttpServlet {
         String digits = priceStr.replaceAll("[^0-9]", "");
         if (digits.isEmpty() || digits.length() > 9) return null;
         return Double.valueOf(digits);
+    }
+
+    // Dữ liệu Timeline: mỗi phòng có suất trong ngày là 1 hàng, mỗi suất là 1 khối đặt theo % trên trục 08:00 - 24:00
+    private List<Map<String, Object>> buildTimelineRows(List<Showtime> showtimes) {
+        final int axisStart = 8 * 60;   // 08:00
+        final int axisLength = 16 * 60; // 08:00 -> 24:00
+        Map<String, Map<String, Object>> rowsByRoom = new LinkedHashMap<>();
+        for (Showtime s : showtimes) {
+            if (s.getRoom() == null || s.getStartTime() == null || s.getEndTime() == null) continue;
+            Map<String, Object> row = rowsByRoom.computeIfAbsent(s.getRoom().getRoomID(), k -> {
+                Map<String, Object> r = new HashMap<>();
+                r.put("room", s.getRoom());
+                r.put("blocks", new ArrayList<Map<String, Object>>());
+                return r;
+            });
+            int startMin = s.getStartTime().getHour() * 60 + s.getStartTime().getMinute();
+            long durationMin = java.time.Duration.between(s.getStartTime(), s.getEndTime()).toMinutes();
+            double left = Math.max(0, startMin - axisStart) * 100.0 / axisLength;
+            double right = Math.min(axisLength, startMin - axisStart + durationMin) * 100.0 / axisLength;
+            if (right <= 0 || left >= 100) continue; // nằm ngoài khung 08:00 - 24:00
+            Map<String, Object> block = new HashMap<>();
+            block.put("st", s);
+            block.put("left", String.format(Locale.US, "%.2f", left));
+            block.put("width", String.format(Locale.US, "%.2f", Math.max(1.5, right - left)));
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> blocks = (List<Map<String, Object>>) row.get("blocks");
+            blocks.add(block);
+        }
+        // Sắp xếp hàng theo tên rạp rồi tên phòng
+        List<Map<String, Object>> rows = new ArrayList<>(rowsByRoom.values());
+        rows.sort(Comparator.comparing((Map<String, Object> r) -> {
+            Room room = (Room) r.get("room");
+            return (room.getCinema() != null ? room.getCinema().getName() : "") + " " + room.getName();
+        }));
+        return rows;
     }
 
     // 7 ngày kể từ hôm nay cho thanh chọn ngày: {iso: yyyy-MM-dd, dayName: Hôm nay / Thứ 2..., dayNum: dd/MM}

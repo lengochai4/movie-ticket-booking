@@ -207,11 +207,11 @@
                                     </td>
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 12px;">
-                                            <img src="${not empty movie.posterUrl ? movie.posterUrl : 'https://placehold.co/42x56/23211f/fcca46?text=POSTER'}" 
-                                                 style="width: 42px; height: 56px; border-radius: 4px; object-fit: cover;" alt="${movie.title}">
+                                            <img src="<c:out value='${not empty movie.posterUrl ? movie.posterUrl : "https://placehold.co/42x56/23211f/fcca46?text=POSTER"}'/>" 
+                                                 style="width: 42px; height: 56px; border-radius: 4px; object-fit: cover;" alt="<c:out value='${movie.title}'/>">
                                             <div>
-                                                <div style="font-weight: 700; color: #ffffff;">${movie.title}</div>
-                                                <span style="font-size: 11px; color: #fcca46;">${movie.genre} · ${movie.duration} phút</span>
+                                                <div style="font-weight: 700; color: #ffffff;"><c:out value='${movie.title}'/></div>
+                                                <span style="font-size: 11px; color: #fcca46;"><c:out value='${movie.genre}'/> · ${movie.duration} phút</span>
                                             </div>
                                         </div>
                                     </td>

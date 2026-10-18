@@ -1,6 +1,7 @@
 <%@ page contentType="text/html; charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <c:set var="pageTitle" value="Quản Lý Lịch Chiếu - Cinetik Admin" scope="request"/>
 <c:set var="extraCss" value="admin-users.css" scope="request"/>
@@ -626,7 +627,7 @@
                 <select id="filterMovie" class="filter-select" style="flex: 1.5;" onchange="applyShowtimeFilter()">
                     <option value="">-- Tất cả phim đang chiếu --</option>
                     <c:forEach items="${movieList}" var="m">
-                        <option value="${m.title}">${m.title}</option>
+                        <option value="${m.movieID}"><c:out value="${m.title}"/></option>
                     </c:forEach>
                 </select>
 
@@ -634,26 +635,16 @@
                 <select id="filterRoom" class="filter-select" onchange="applyShowtimeFilter()">
                     <option value="">-- Tất cả phòng chiếu --</option>
                     <c:forEach items="${roomList}" var="r">
-                        <option value="${r.name}">${r.name} - ${r.cinema != null ? r.cinema.name : 'Cinema'}</option>
+                        <option value="${r.roomID}"><c:out value="${r.name}"/> - <c:out value="${r.cinema != null ? r.cinema.name : 'Cinema'}"/></option>
                     </c:forEach>
-                </select>
-
-                <%---- Lọc theo Định dạng ----%>
-                <select id="filterFormat" class="filter-select" onchange="applyShowtimeFilter()">
-                    <option value="">-- Định dạng chiếu --</option>
-                    <option value="IMAX 3D">IMAX 3D</option>
-                    <option value="Dolby Atmos">Dolby Atmos</option>
-                    <option value="2D Phụ Đề">2D Phụ Đề</option>
-                    <option value="2D Lồng Tiếng">2D Lồng Tiếng</option>
-                    <option value="3D Phụ Đề">3D Phụ Đề</option>
                 </select>
 
                 <%---- Lọc theo Trạng thái ----%>
                 <select id="filterStatus" class="filter-select" onchange="applyShowtimeFilter()">
                     <option value="">-- Tất cả trạng thái --</option>
                     <option value="OPEN">Đang mở bán</option>
-                    <option value="SOON">Sắp chiếu</option>
-                    <option value="ENDED">Đã kết thúc</option>
+                    <option value="SOON">Sắp chiếu (trong 90 phút)</option>
+                    <option value="ENDED">Đã chiếu / đang chiếu</option>
                 </select>
 
                 <button type="button" class="btn-filter-reset" onclick="resetFilters()">Đặt lại</button>
@@ -668,7 +659,7 @@
                         <tr>
                             <th style="width: 100px;">MÃ SUẤT</th>
                             <th style="width: 280px;">PHIM CHIẾU</th>
-                            <th style="width: 160px;">PHÒNG & ĐỊNH DẠNG</th>
+                            <th style="width: 160px;">PHÒNG CHIẾU</th>
                             <th style="width: 150px;">KHUNG GIỜ</th>
                             <th style="width: 120px;">GIÁ VÉ (VND)</th>
                             <th style="width: 160px;">TỶ LỆ LẤP ĐẦY</th>
@@ -680,23 +671,23 @@
                     <c:choose>
                         <c:when test="${not empty showtimeList}">
                             <c:forEach items="${showtimeList}" var="st">
-                                <tr data-movie="${st.movie.title}" data-room="${st.room.name}" data-format="2D Digital" data-status="OPEN">
-                                    <td><strong style="color: #fcca46;">#ST-${st.showtimeID}</strong></td>
+                                <tr data-movie-id="${st.movie.movieID}" data-room-id="${st.room.roomID}" data-status="${statusById[st.showtimeID]}">
+                                    <td><strong style="color: #fcca46;" title="${st.showtimeID}">#${fn:substring(st.showtimeID, 0, 8)}</strong></td>
                                     <td>
                                         <div style="display: flex; gap: 12px; align-items: center;">
-                                            <img src="${not empty st.movie.posterUrl ? st.movie.posterUrl : 'https://placehold.co/44x60/23211f/fcca46?text=POSTER'}" 
-                                                 alt="${st.movie.title}" style="width: 44px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #3c3733;">
+                                            <img src="<c:out value='${not empty st.movie.posterUrl ? st.movie.posterUrl : "https://placehold.co/44x60/23211f/fcca46?text=POSTER"}'/>"
+                                                 alt="<c:out value='${st.movie.title}'/>" style="width: 44px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #3c3733;">
                                             <div>
-                                                <div style="font-weight: 700; color: #f6ead2;">${st.movie.title}</div>
+                                                <div style="font-weight: 700; color: #f6ead2;"><c:out value="${st.movie.title}"/></div>
                                                 <div style="font-size: 12px; color: #8c8273; margin-top: 2px;">
-                                                    ⏱️ ${st.movie.duration} phút | <span style="color: #f87171; font-weight: 700;">${st.movie.ageRating}</span>
+                                                    ⏱️ ${st.movie.duration} phút | <span style="color: #f87171; font-weight: 700;"><c:out value="${st.movie.ageRating}"/></span>
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="badge-room">${st.room.name}</div>
-                                        <div style="margin-top: 4px;"><span class="badge-format format-2d">2D Digital</span></div>
+                                        <div class="badge-room"><c:out value="${st.room.name}"/></div>
+                                        <div style="font-size: 11px; color: #8c8273; margin-top: 4px;"><c:out value="${st.room.cinema != null ? st.room.cinema.name : ''}"/></div>
                                     </td>
                                     <td>
                                         <div style="font-size: 15px; font-weight: 700; color: #fcca46;">${st.formattedStartTime} - ${st.formattedEndTime}</div>
@@ -704,24 +695,38 @@
                                     </td>
                                     <td>
                                         <strong style="color: #e4d8c5; font-size: 14px;">
-                                            <fmt:formatNumber value="${st.price != null ? st.price : 90000}" type="number" maxFractionDigits="0"/> đ
+                                            <c:choose>
+                                                <c:when test="${st.price != null}"><fmt:formatNumber value="${st.price}" type="number" maxFractionDigits="0"/> đ</c:when>
+                                                <c:otherwise><span style="color: #f87171;" title="Suất chiếu chưa có giá vé trong database">Chưa có giá</span></c:otherwise>
+                                            </c:choose>
                                         </strong>
                                     </td>
                                     <td>
-                                        <div style="font-size: 12px; color: #f6ead2; font-weight: 600;">0 / ${st.room.capacity > 0 ? st.room.capacity : 150} vé (0%)</div>
+                                        <div style="font-size: 12px; color: #f6ead2; font-weight: 600;">${soldById[st.showtimeID] != null ? soldById[st.showtimeID] : 0} / ${st.room.capacity} vé (${fillById[st.showtimeID]}%)</div>
                                         <div class="seat-progress-container">
-                                            <div class="seat-progress-bar low" style="width: 0%;"></div>
+                                            <div class="seat-progress-bar ${fillById[st.showtimeID] >= 80 ? 'high' : ''}" style="width: ${fillById[st.showtimeID]}%;"></div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                                            ● Đang bán
-                                        </span>
+                                        <c:choose>
+                                            <c:when test="${statusById[st.showtimeID] == 'ENDED'}">
+                                                <span class="badge-status" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3);">● Đã chiếu</span>
+                                            </c:when>
+                                            <c:when test="${statusById[st.showtimeID] == 'SOON'}">
+                                                <span class="badge-status" style="background: rgba(229, 169, 59, 0.15); color: #fcca46; border: 1px solid rgba(229, 169, 59, 0.3);">● Sắp chiếu</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">● Đang bán</span>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </td>
                                     <td class="table-actions-cell">
                                         <div class="table-actions-wrap">
-                                            <button type="button" class="btn-table-action edit" title="Chỉnh sửa suất chiếu" 
-                                                    onclick="openEditShowtimeModal('${st.showtimeID}', '${st.movie.movieID}', '${st.room.roomID}', '2D Digital', '${st.formattedDateIso}', '${st.formattedStartTime}', '${st.formattedEndTime}', '<fmt:formatNumber value="${st.price != null ? st.price : 90000}" groupingUsed="false" maxFractionDigits="0"/>')">
+                                            <button type="button" class="btn-table-action edit" title="Chỉnh sửa suất chiếu"
+                                                    data-id="${st.showtimeID}" data-movie-id="${st.movie.movieID}" data-room-id="${st.room.roomID}"
+                                                    data-date="${st.formattedDateIso}" data-start="${st.formattedStartTime}" data-end="${st.formattedEndTime}"
+                                                    data-price="<fmt:formatNumber value='${st.price != null ? st.price : 90000}' groupingUsed='false' maxFractionDigits='0'/>"
+                                                    onclick="openEditShowtimeFromData(this)">
                                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -770,16 +775,13 @@
                 </h3>
                 <div style="display: flex; gap: 14px; font-size: 12px; color: #b5a995;">
                     <span style="display: inline-flex; align-items: center; gap: 5px;">
-                        <span style="width: 10px; height: 10px; background: #60a5fa; border-radius: 2px;"></span> IMAX Laser
+                        <span style="width: 10px; height: 10px; background: #4ade80; border-radius: 2px;"></span> Đang bán
                     </span>
                     <span style="display: inline-flex; align-items: center; gap: 5px;">
-                        <span style="width: 10px; height: 10px; background: #c084fc; border-radius: 2px;"></span> Dolby Cinema
+                        <span style="width: 10px; height: 10px; background: #fcca46; border-radius: 2px;"></span> Sắp chiếu
                     </span>
                     <span style="display: inline-flex; align-items: center; gap: 5px;">
-                        <span style="width: 10px; height: 10px; background: #fcca46; border-radius: 2px;"></span> VIP Gold Class
-                    </span>
-                    <span style="display: inline-flex; align-items: center; gap: 5px;">
-                        <span style="width: 10px; height: 10px; background: #4ade80; border-radius: 2px;"></span> Standard 2D
+                        <span style="width: 10px; height: 10px; background: #c084fc; border-radius: 2px;"></span> Đã chiếu
                     </span>
                 </div>
             </div>
@@ -805,129 +807,33 @@
                 <div class="timeline-hour-col">23h</div>
             </div>
 
-            <%---- Hàng Phòng 01: IMAX ----%>
+            <c:forEach items="${timelineRows}" var="row">
             <div class="timeline-room-row">
                 <div class="timeline-room-label">
-                    <span class="timeline-room-title">Phòng 01</span>
-                    <span class="timeline-room-capacity">IMAX Laser • 250 chỗ</span>
+                    <span class="timeline-room-title"><c:out value="${row.room.name}"/></span>
+                    <span class="timeline-room-capacity"><c:out value="${row.room.cinema != null ? row.room.cinema.name : ''}"/> • ${row.room.capacity} chỗ</span>
                 </div>
                 <div class="timeline-room-track">
-                    <%---- Suất 1: 09:15 - 12:01 (từ 08h là 1.25h -> 7.8% đến 4h -> 25%) ----%>
-                    <div class="timeline-block theme-imax" style="left: 7.8%; width: 17.3%;" 
-                         onclick="openEditShowtimeModal('ST-101', 'Avatar 3', 'Phòng 01', 'IMAX 3D', '2026-10-16', '09:15', '12:01', '140.000')"
-                         title="Avatar: Dòng Chảy Của Nước (09:15 - 12:01) - 220/250 vé">
-                        <div class="timeline-block-title">Avatar: Dòng Chảy Của Nước</div>
-                        <div class="timeline-block-meta"><span>09:15 - 12:01</span> <span>88%</span></div>
-                    </div>
-                    <%---- Suất 2: 13:30 - 16:16 ----%>
-                    <div class="timeline-block theme-imax" style="left: 34.3%; width: 17.3%;"
-                         onclick="openEditShowtimeModal('ST-106', 'Avatar 3', 'Phòng 01', 'IMAX 3D', '2026-10-16', '13:30', '16:16', '140.000')"
-                         title="Avatar: Dòng Chảy Của Nước (13:30 - 16:16) - 240/250 vé">
-                        <div class="timeline-block-title">Avatar: Dòng Chảy Của Nước</div>
-                        <div class="timeline-block-meta"><span>13:30 - 16:16</span> <span>96%</span></div>
-                    </div>
-                    <%---- Suất 3: 20:00 - 22:18 ----%>
-                    <div class="timeline-block theme-imax" style="left: 75.0%; width: 14.4%;"
-                         onclick="openEditShowtimeModal('ST-105', 'Joker 2', 'Phòng 01', 'IMAX 3D', '2026-10-16', '20:00', '22:18', '140.000')"
-                         title="Joker: Folie à Deux (20:00 - 22:18) - 215/250 vé">
-                        <div class="timeline-block-title">Joker: Folie à Deux</div>
-                        <div class="timeline-block-meta"><span>20:00 - 22:18</span> <span>86%</span></div>
-                    </div>
+                    <c:forEach items="${row.blocks}" var="b">
+                        <c:set var="st" value="${b.st}"/>
+                        <div class="timeline-block ${statusById[st.showtimeID] == 'ENDED' ? 'theme-dolby' : (statusById[st.showtimeID] == 'SOON' ? 'theme-gold' : 'theme-standard')}"
+                             style="left: ${b.left}%; width: ${b.width}%;" data-status="${statusById[st.showtimeID]}"
+                             title="<c:out value='${st.movie.title}'/> (${st.timeRange}) - ${soldById[st.showtimeID] != null ? soldById[st.showtimeID] : 0}/${st.room.capacity} vé"
+                             data-id="${st.showtimeID}" data-movie-id="${st.movie.movieID}" data-room-id="${st.room.roomID}"
+                             data-date="${st.formattedDateIso}" data-start="${st.formattedStartTime}" data-end="${st.formattedEndTime}"
+                             data-price="<fmt:formatNumber value='${st.price != null ? st.price : 90000}' groupingUsed='false' maxFractionDigits='0'/>"
+                             onclick="openEditShowtimeFromData(this)">
+                            <div class="timeline-block-title"><c:out value="${st.movie.title}"/></div>
+                            <div class="timeline-block-meta"><span>${st.timeRange}</span> <span>${fillById[st.showtimeID]}%</span></div>
+                        </div>
+                    </c:forEach>
                 </div>
             </div>
+            </c:forEach>
 
-            <%---- Hàng Phòng 02: Dolby Cinema ----%>
-            <div class="timeline-room-row">
-                <div class="timeline-room-label">
-                    <span class="timeline-room-title">Phòng 02</span>
-                    <span class="timeline-room-capacity">Dolby Atmos • 180 chỗ</span>
-                </div>
-                <div class="timeline-room-track">
-                    <%---- Suất 1: 10:30 - 13:16 ----%>
-                    <div class="timeline-block theme-dolby" style="left: 15.6%; width: 17.3%;"
-                         onclick="openEditShowtimeModal('ST-102', 'Dune 2', 'Phòng 02', 'Dolby Atmos', '2026-10-16', '10:30', '13:16', '120.000')"
-                         title="Dune 2 (10:30 - 13:16) - 126/180 vé">
-                        <div class="timeline-block-title">Dune: Phần 2</div>
-                        <div class="timeline-block-meta"><span>10:30 - 13:16</span> <span>70%</span></div>
-                    </div>
-                    <%---- Suất 2: 15:00 - 17:46 ----%>
-                    <div class="timeline-block theme-dolby" style="left: 43.7%; width: 17.3%;"
-                         title="Dune 2 (15:00 - 17:46) - 150/180 vé">
-                        <div class="timeline-block-title">Dune: Phần 2</div>
-                        <div class="timeline-block-meta"><span>15:00 - 17:46</span> <span>83%</span></div>
-                    </div>
-                    <%---- Suất 3: 19:00 - 21:18 ----%>
-                    <div class="timeline-block theme-dolby" style="left: 68.7%; width: 14.4%;"
-                         title="Joker 2 (19:00 - 21:18) - 162/180 vé">
-                        <div class="timeline-block-title">Joker: Folie à Deux</div>
-                        <div class="timeline-block-meta"><span>19:00 - 21:18</span> <span>90%</span></div>
-                    </div>
-                </div>
-            </div>
-
-            <%---- Hàng Phòng 03: VIP Gold Class ----%>
-            <div class="timeline-room-row">
-                <div class="timeline-room-label">
-                    <span class="timeline-room-title">Phòng 03</span>
-                    <span class="timeline-room-capacity">VIP Lounge • 60 chỗ</span>
-                </div>
-                <div class="timeline-room-track">
-                    <%---- Suất 1: 14:00 - 16:11 ----%>
-                    <div class="timeline-block theme-gold" style="left: 37.5%; width: 13.6%;"
-                         title="Mai (14:00 - 16:11) - 45/60 vé">
-                        <div class="timeline-block-title">Mai</div>
-                        <div class="timeline-block-meta"><span>14:00 - 16:11</span> <span>75%</span></div>
-                    </div>
-                    <%---- Suất 2: 18:30 - 20:41 ----%>
-                    <div class="timeline-block theme-gold" style="left: 65.6%; width: 13.6%;"
-                         onclick="openEditShowtimeModal('ST-104', 'Mai', 'Phòng 03', '2D Phụ Đề', '2026-10-16', '18:30', '20:41', '160.000')"
-                         title="Mai (18:30 - 20:41) - 58/60 vé">
-                        <div class="timeline-block-title">Mai (VIP)</div>
-                        <div class="timeline-block-meta"><span>18:30 - 20:41</span> <span>96%</span></div>
-                    </div>
-                    <%---- Suất 3: 21:30 - 23:18 ----%>
-                    <div class="timeline-block theme-gold" style="left: 84.3%; width: 11.2%;"
-                         title="Quỷ Cẩu (21:30 - 23:18) - 50/60 vé">
-                        <div class="timeline-block-title">Quỷ Cẩu</div>
-                        <div class="timeline-block-meta"><span>21:30 - 23:18</span> <span>83%</span></div>
-                    </div>
-                </div>
-            </div>
-
-            <%---- Hàng Phòng 04: Standard 2D ----%>
-            <div class="timeline-room-row">
-                <div class="timeline-room-label">
-                    <span class="timeline-room-title">Phòng 04</span>
-                    <span class="timeline-room-capacity">Standard • 140 chỗ</span>
-                </div>
-                <div class="timeline-room-track">
-                    <%---- Suất 1: 09:00 - 10:50 ----%>
-                    <div class="timeline-block theme-standard" style="left: 6.2%; width: 11.4%;"
-                         title="Conan (09:00 - 10:50) - 130/140 vé">
-                        <div class="timeline-block-title">Conan Movie 27</div>
-                        <div class="timeline-block-meta"><span>09:00 - 10:50</span> <span>93%</span></div>
-                    </div>
-                    <%---- Suất 2: 14:00 - 15:50 ----%>
-                    <div class="timeline-block theme-standard" style="left: 37.5%; width: 11.4%;"
-                         onclick="openEditShowtimeModal('ST-103', 'Conan', 'Phòng 04', '2D Lồng Tiếng', '2026-10-16', '14:00', '15:50', '90.000')"
-                         title="Conan (14:00 - 15:50) - 129/140 vé">
-                        <div class="timeline-block-title">Conan Movie 27</div>
-                        <div class="timeline-block-meta"><span>14:00 - 15:50</span> <span>92%</span></div>
-                    </div>
-                    <%---- Suất 3: 17:00 - 19:11 ----%>
-                    <div class="timeline-block theme-standard" style="left: 56.2%; width: 13.6%;"
-                         title="Mai (17:00 - 19:11) - 110/140 vé">
-                        <div class="timeline-block-title">Mai</div>
-                        <div class="timeline-block-meta"><span>17:00 - 19:11</span> <span>78%</span></div>
-                    </div>
-                    <%---- Suất 4: 20:30 - 22:18 ----%>
-                    <div class="timeline-block theme-standard" style="left: 78.1%; width: 11.2%;"
-                         title="Quỷ Cẩu (20:30 - 22:18) - 125/140 vé">
-                        <div class="timeline-block-title">Quỷ Cẩu</div>
-                        <div class="timeline-block-meta"><span>20:30 - 22:18</span> <span>89%</span></div>
-                    </div>
-                </div>
-            </div>
+            <c:if test="${empty timelineRows}">
+                <div style="text-align: center; padding: 30px; color: #8c8273;">Chưa có suất chiếu nào trong ngày này.</div>
+            </c:if>
         </section>
 
     </div>
@@ -960,7 +866,7 @@
                         <div style="flex: 1;">
                             <select name="movieID" id="inputMovieID" class="form-select" required onchange="onMovieSelectChange()">
                                 <c:forEach items="${movieList}" var="m">
-                                    <option value="${m.movieID}" data-duration="${m.duration}" data-thumb="${not empty m.posterUrl ? m.posterUrl : 'https://placehold.co/200x300/23211f/fcca46?text=POSTER'}">${m.title} (${m.duration} phút)</option>
+                                    <option value="${m.movieID}" data-duration="${m.duration}" data-thumb="<c:out value='${not empty m.posterUrl ? m.posterUrl : "https://placehold.co/200x300/23211f/fcca46?text=POSTER"}'/>"><c:out value="${m.title}"/> (${m.duration} phút)</option>
                                 </c:forEach>
                             </select>
                             <div style="font-size: 11.5px; color: #8c8273; margin-top: 4px;">Hệ thống tự động cộng thời lượng phim + 15 phút dọn rạp để tính giờ kết thúc.</div>
@@ -968,27 +874,17 @@
                     </div>
                 </div>
 
-                <%---- Cụm Phòng chiếu & Định dạng chiếu ----%>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <%---- Phòng chiếu ----%>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 14px;">
                     <div class="form-group">
                         <label class="form-label">Phòng Chiếu <span style="color: #ef4444;">*</span></label>
                         <select name="roomID" id="inputRoomID" class="form-select" required onchange="calculateEndTime()">
                                 <c:forEach items="${roomList}" var="r">
-                                    <option value="${r.roomID}">${r.name} - ${r.cinema != null ? r.cinema.name : 'Cinema'} (${r.capacity} chỗ)</option>
+                                    <option value="${r.roomID}"><c:out value="${r.name}"/> - <c:out value="${r.cinema != null ? r.cinema.name : 'Cinema'}"/> (${r.capacity} chỗ)</option>
                                 </c:forEach>
                             </select>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Định Dạng Chiếu <span style="color: #ef4444;">*</span></label>
-                        <select name="format" id="inputFormat" class="form-select" required onchange="suggestTicketPrice()">
-                            <option value="IMAX 3D">IMAX 3D (Kính 3D)</option>
-                            <option value="Dolby Atmos">Dolby Atmos (Âm thanh vòm)</option>
-                            <option value="2D Phụ Đề">2D Phụ Đề Tiếng Việt</option>
-                            <option value="2D Lồng Tiếng">2D Lồng Tiếng Việt</option>
-                            <option value="3D Phụ Đề">3D Phụ Đề</option>
-                        </select>
-                    </div>
                 </div>
 
                 <%---- Ngày chiếu, Giờ bắt đầu, Giờ kết thúc ----%>
@@ -1044,6 +940,7 @@
 
         <form action="${pageContext.request.contextPath}/admin/showtimes/delete" method="POST">
             <input type="hidden" name="showtimeID" id="deleteShowtimeID">
+            <input type="hidden" name="date" value="${selectedDate}">
 
             <div class="modal-body" style="font-size: 14px; line-height: 1.6; color: #b5a995;">
                 <p>Bạn có chắc chắn muốn hủy suất chiếu của phim:</p>
@@ -1100,34 +997,25 @@ function switchView(mode) {
     }
 }
 
-// Bộ lọc danh sách bảng
+// Bộ lọc danh sách (bảng và Timeline) theo mã phim, mã phòng, trạng thái
 function applyShowtimeFilter() {
-    const movieFilter = document.getElementById('filterMovie').value.toLowerCase();
-    const roomFilter = document.getElementById('filterRoom').value.toLowerCase();
-    const formatFilter = document.getElementById('filterFormat').value.toLowerCase();
+    const movieFilter = document.getElementById('filterMovie').value;
+    const roomFilter = document.getElementById('filterRoom').value;
     const statusFilter = document.getElementById('filterStatus').value;
 
-    const rows = document.querySelectorAll('#showtimeTableBody tr');
-    rows.forEach(row => {
-        const rowMovie = (row.getAttribute('data-movie') || '').toLowerCase();
-        const rowRoom = (row.getAttribute('data-room') || '').toLowerCase();
-        const rowFormat = (row.getAttribute('data-format') || '').toLowerCase();
-        const rowStatus = row.getAttribute('data-status') || '';
-
+    const items = document.querySelectorAll('#showtimeTableBody tr[data-movie-id], #timelineViewContainer .timeline-block');
+    items.forEach(item => {
         let show = true;
-        if (movieFilter && !rowMovie.includes(movieFilter)) show = false;
-        if (roomFilter && !rowRoom.includes(roomFilter)) show = false;
-        if (formatFilter && !rowFormat.includes(formatFilter)) show = false;
-        if (statusFilter && rowStatus !== statusFilter) show = false;
-
-        row.style.display = show ? '' : 'none';
+        if (movieFilter && item.dataset.movieId !== movieFilter) show = false;
+        if (roomFilter && item.dataset.roomId !== roomFilter) show = false;
+        if (statusFilter && item.dataset.status !== statusFilter) show = false;
+        item.style.display = show ? '' : 'none';
     });
 }
 
 function resetFilters() {
     document.getElementById('filterMovie').value = '';
     document.getElementById('filterRoom').value = '';
-    document.getElementById('filterFormat').value = '';
     document.getElementById('filterStatus').value = '';
     applyShowtimeFilter();
 }
@@ -1168,21 +1056,6 @@ function calculateEndTime() {
     document.getElementById('inputEndTime').value = formattedEnd;
 }
 
-// Gợi ý giá vé theo định dạng
-function suggestTicketPrice() {
-    const format = document.getElementById('inputFormat').value;
-    const priceInput = document.getElementById('inputPrice');
-    if (format === 'IMAX 3D') {
-        priceInput.value = '140.000';
-    } else if (format === 'Dolby Atmos') {
-        priceInput.value = '120.000';
-    } else if (format === '3D Phụ Đề') {
-        priceInput.value = '110.000';
-    } else {
-        priceInput.value = '90.000';
-    }
-}
-
 // Mở Modal Lên Lịch Chiếu Mới
 function openAddShowtimeModal() {
     document.getElementById('showtimeModalTitle').innerHTML = '➕ Lên Lịch Chiếu Mới';
@@ -1191,7 +1064,7 @@ function openAddShowtimeModal() {
     document.getElementById('inputShowDate').value = document.getElementById('customDatePicker').value;
     document.getElementById('inputStartTime').value = '14:30';
     onMovieSelectChange();
-    suggestTicketPrice();
+    document.getElementById('inputPrice').value = '90.000';
     const modal = document.getElementById('showtimeModal');
     modal.style.display = 'flex';
     modal.classList.add('active');
@@ -1199,8 +1072,14 @@ function openAddShowtimeModal() {
 }
 
 // Mở Modal Sửa Suất Chiếu
-function openEditShowtimeModal(id, movie, room, format, date, start, end, price) {
-    document.getElementById('showtimeModalTitle').innerHTML = '✏️ Chỉnh Sửa Suất Chiếu #' + id;
+// Nút Sửa (bảng) và khối suất chiếu (Timeline) truyền dữ liệu qua data-*
+function openEditShowtimeFromData(el) {
+    const d = el.dataset;
+    openEditShowtimeModal(d.id, d.movieId, d.roomId, d.date, d.start, d.end, d.price);
+}
+
+function openEditShowtimeModal(id, movie, room, date, start, end, price) {
+    document.getElementById('showtimeModalTitle').textContent = '✏️ Chỉnh Sửa Suất Chiếu #' + id.substring(0, 8);
     document.getElementById('inputShowtimeID').value = id;
     
     // Set movie
@@ -1218,15 +1097,6 @@ function openEditShowtimeModal(id, movie, room, format, date, start, end, price)
     for (let i = 0; i < roomSelect.options.length; i++) {
         if (roomSelect.options[i].value === room) {
             roomSelect.selectedIndex = i;
-            break;
-        }
-    }
-
-    // Set format
-    const formatSelect = document.getElementById('inputFormat');
-    for (let i = 0; i < formatSelect.options.length; i++) {
-        if (formatSelect.options[i].value === format) {
-            formatSelect.selectedIndex = i;
             break;
         }
     }

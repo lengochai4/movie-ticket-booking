@@ -5,7 +5,9 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Truy vấn thống kê CHỈ ĐỌC trên bảng bookings / tickets (do Hải, Như quản lý).
@@ -122,6 +124,27 @@ public class StatisticsDAO {
             return new double[] { num(sold), num(capacity) };
         } catch (Exception e) {
             System.err.println("[StatisticsDAO] Lỗi getSeatFill: " + e.getMessage());
+            throw new RuntimeException(e);
+        } finally {
+            em.close();
+        }
+    }
+
+    // Số vé đã bán (đơn PAID) của từng suất chiếu bắt đầu trong [from, to): showtimeID -> số vé
+    public Map<String, Long> getSoldTicketsByShowtime(String paidStatus, LocalDateTime from, LocalDateTime to) {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            String sql = "SELECT b.showtime_id, COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) FROM bookings b "
+                    + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
+                    + "WHERE b.status = ?1 AND s.starttime >= ?2 AND s.starttime < ?3 "
+                    + "GROUP BY b.showtime_id";
+            Map<String, Long> result = new HashMap<>();
+            for (Object[] row : castRows(bind(em.createNativeQuery(sql), paidStatus, from, to).getResultList())) {
+                result.put((String) row[0], (long) num(row[1]));
+            }
+            return result;
+        } catch (Exception e) {
+            System.err.println("[StatisticsDAO] Lỗi getSoldTicketsByShowtime: " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
             em.close();
