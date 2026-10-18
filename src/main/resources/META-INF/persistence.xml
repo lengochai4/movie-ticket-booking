@@ -9,6 +9,7 @@
         <class>com.cinema.entity.Room</class>
         <class>com.cinema.entity.Showtime</class>
         <class>com.cinema.entity.Seat</class>
+        <class>com.cinema.entity.Combo</class>
         <exclude-unlisted-classes>false</exclude-unlisted-classes>
 
         <properties>
