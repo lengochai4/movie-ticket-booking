@@ -43,6 +43,27 @@ public class MovieDetailServlet extends HttpServlet {
             movie.setAgeRating("T16");
         }
 
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
+
+        // Tải danh sách đánh giá phim do Ân phụ trách
+        try {
+            com.cinema.dao.review.ReviewDAO reviewDAO = new com.cinema.dao.review.ReviewDAO();
+            java.util.List<com.cinema.entity.Review> reviewList = reviewDAO.findByMovieId(movie.getMovieID());
+            int totalReviews = reviewList != null ? reviewList.size() : 0;
+            double avgRating = totalReviews > 0 ? reviewDAO.getAverageRating(movie.getMovieID()) : 4.8;
+
+            request.setAttribute("reviewList", reviewList != null ? reviewList : new java.util.ArrayList<>());
+            request.setAttribute("avgRating", String.format(java.util.Locale.US, "%.1f", avgRating));
+            request.setAttribute("averageRating", avgRating);
+            if (totalReviews > 0) {
+                request.setAttribute("totalReviews", totalReviews);
+            }
+        } catch (Exception e) {
+            System.err.println("[MovieDetailServlet] Lỗi nạp reviews: " + e.getMessage());
+            request.setAttribute("reviewList", new java.util.ArrayList<>());
+        }
+
         request.setAttribute("movie", movie);
         request.getRequestDispatcher("/WEB-INF/views/catalog/movie-detail.jsp").forward(request, response);
     }
