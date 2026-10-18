@@ -66,21 +66,35 @@ public class OrderService {
     }
 
     public OrderActionResult placeBooking(PlaceBookingRequest request) {
-        return bookingDAO.place(request);
+        OrderActionResult result = bookingDAO.place(request);
+        if (result.isSuccess() && result.getOrderCode() != null) {
+            TicketMail.sendTicket(findTicket(result.getOrderCode()));
+        }
+        return result;
     }
 
     public OrderActionResult cancelForCustomer(String userId, String orderCode) {
         if (orderCode == null || orderCode.isBlank()) {
             return OrderActionResult.fail("Thiếu mã vé cần hủy.");
         }
-        return bookingDAO.cancelForCustomer(userId, orderCode.trim());
+        OrderActionResult result = bookingDAO.cancelForCustomer(userId, orderCode.trim());
+        notifyCancelled(result);
+        return result;
     }
 
     public OrderActionResult cancelForAdmin(String orderCode, String reason) {
         if (orderCode == null || orderCode.isBlank()) {
             return OrderActionResult.fail("Thiếu mã vé cần hủy.");
         }
-        return bookingDAO.cancelForAdmin(orderCode.trim(), reason);
+        OrderActionResult result = bookingDAO.cancelForAdmin(orderCode.trim(), reason);
+        notifyCancelled(result);
+        return result;
+    }
+
+    private void notifyCancelled(OrderActionResult result) {
+        if (result != null && result.isSuccess() && result.getOrderCode() != null) {
+            TicketMail.sendCancelled(findTicket(result.getOrderCode()));
+        }
     }
 
     public OrderActionResult updateStatus(String orderCode, String statusName, String reason) {
@@ -94,7 +108,16 @@ public class OrderService {
         if (status == null) {
             return OrderActionResult.fail("Trạng thái không hợp lệ.");
         }
-        return bookingDAO.updateStatus(orderCode.trim(), status, reason);
+        OrderActionResult result = bookingDAO.updateStatus(orderCode.trim(), status, reason);
+        if (result != null && result.isSuccess() && result.getOrderCode() != null) {
+            if (status == BookingStatus.PAID) {
+                TicketMail.sendTicket(findTicket(result.getOrderCode()));
+            }
+            if (status == BookingStatus.CANCELLED) {
+                TicketMail.sendCancelled(findTicket(result.getOrderCode()));
+            }
+        }
+        return result;
     }
 
     public BookingStatus parseStatus(String statusName) {
@@ -119,6 +142,7 @@ public class OrderService {
         view.setStatus(booking.getStatus() == null ? "" : booking.getStatus().name());
         view.setCustomerName(booking.getCustomerName());
         view.setPhone(booking.getPhone());
+        view.setEmail(booking.getEmail());
         view.setTotalPrice(booking.getTotalPrice() == null ? 0 : booking.getTotalPrice());
         view.setCombos(booking.getCombos());
         view.setPosterURL(booking.getPosterURL());

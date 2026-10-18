@@ -12,6 +12,7 @@ import com.cinema.entity.Ticket;
 import com.cinema.enums.BookingStatus;
 import com.cinema.enums.TicketStatus;
 import com.cinema.order.OrderText;
+import com.cinema.service.order.LoyaltyService;
 import com.cinema.util.JPAUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
@@ -37,6 +38,7 @@ public class BookingDAO {
             + "LEFT JOIN FETCH r.cinema ";
 
     private final LoyaltyAccountDAO loyaltyAccountDAO = new LoyaltyAccountDAO();
+    private final LoyaltyService loyaltyService = new LoyaltyService();
 
     public List<Booking> findByUser(String userId) {
         EntityManager em = open();
@@ -199,11 +201,26 @@ public class BookingDAO {
             double ticketTotal = positive(request.getTicketTotal());
             double comboTotal = positive(request.getComboTotal());
             double finalTotal = request.getFinalTotal() == null ? ticketTotal + comboTotal : positive(request.getFinalTotal());
+            int pointsToUse = request.getPointsToUse() == null ? 0 : request.getPointsToUse();
+            if (pointsToUse < 0) {
+                rollback(trans);
+                return OrderActionResult.fail("Số điểm sử dụng không hợp lệ.");
+            }
+            int maxPoints = (int) Math.floor(finalTotal / LoyaltyService.POINT_VALUE_VND);
+            if (pointsToUse > maxPoints) {
+                rollback(trans);
+                return OrderActionResult.fail("Số điểm vượt quá giá trị đơn. Tối đa " + maxPoints + " điểm.");
+            }
             booking.setTicketPrice(ticketTotal);
             booking.setComboPrice(comboTotal);
-            booking.setTotalPrice(finalTotal);
             booking.setCombos(OrderText.formatCombos(request.getCombosRaw()));
-            booking.setPointsUsed(0);
+            booking.setPointsUsed(pointsToUse);
+            Integer balance = null;
+            if (pointsToUse > 0) {
+                balance = loyaltyService.usePoints(em, booking.getUserId(), pointsToUse);
+                finalTotal = finalTotal - (pointsToUse * (double) LoyaltyService.POINT_VALUE_VND);
+            }
+            booking.setTotalPrice(finalTotal);
 
             double eachPrice = seatTokens.isEmpty() ? 0 : ticketTotal / seatTokens.size();
             List<String> labels = new ArrayList<>();
@@ -225,9 +242,11 @@ public class BookingDAO {
             }
             booking.setSeats(String.join(", ", labels));
 
-            Integer balance = null;
             if (booking.getStatus() == BookingStatus.PAID) {
-                balance = awardPoints(em, booking);
+                Integer afterEarn = awardPoints(em, booking);
+                if (afterEarn != null) {
+                    balance = afterEarn;
+                }
             }
             em.persist(booking);
             trans.commit();
@@ -237,6 +256,9 @@ public class BookingDAO {
             result.setOrderCode(booking.getOrderCode());
             result.setLoyaltyPoints(balance);
             return result;
+        } catch (IllegalStateException e) {
+            rollback(trans);
+            return OrderActionResult.fail(e.getMessage());
         } catch (Exception e) {
             rollback(trans);
             System.err.println("[BookingDAO] Lỗi place: " + e.getMessage());
@@ -360,11 +382,11 @@ public class BookingDAO {
         for (Ticket ticket : booking.getTickets()) {
             ticket.setStatus(TicketStatus.CANCELLED);
         }
-        if (!wasPaid || booking.isPointsReversed()) {
+        if (booking.isPointsReversed()) {
             return null;
         }
         int delta = 0;
-        if (booking.getPointsEarned() != null) {
+        if (wasPaid && booking.getPointsEarned() != null) {
             delta -= booking.getPointsEarned();
         }
         if (booking.getPointsUsed() != null) {

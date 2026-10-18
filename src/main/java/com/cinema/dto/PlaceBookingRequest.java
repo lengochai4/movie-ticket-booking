@@ -22,6 +22,7 @@ public class PlaceBookingRequest implements Serializable {
     private Double finalTotal;
     private String movieFormat;
     private boolean paid;
+    private Integer pointsToUse;
 
     public PlaceBookingRequest() {
         this.paid = true;
@@ -121,5 +122,13 @@ public class PlaceBookingRequest implements Serializable {
 
     public void setPaid(boolean paid) {
         this.paid = paid;
+    }
+
+    public Integer getPointsToUse() {
+        return pointsToUse;
+    }
+
+    public void setPointsToUse(Integer pointsToUse) {
+        this.pointsToUse = pointsToUse;
     }
 }

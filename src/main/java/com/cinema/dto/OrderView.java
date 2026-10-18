@@ -32,6 +32,7 @@ public class OrderView implements Serializable {
     private Double totalPrice;
     private String customerName;
     private String phone;
+    private String email;
     private String qrImageUrl;
     private int pointsEarned;
     private boolean cancellable;
@@ -208,6 +209,14 @@ public class OrderView implements Serializable {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getQrImageUrl() {

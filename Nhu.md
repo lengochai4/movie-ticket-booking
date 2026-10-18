@@ -54,10 +54,12 @@ Entity: `com.cinema.entity.Booking`, `Ticket`, `LoyaltyAccount`.
 ### Quy tắc nghiệp vụ
 
 - Đơn `PAID`: 1 điểm cho mỗi 10.000đ (làm tròn xuống).
+- Dùng điểm lúc thanh toán: 1 điểm trừ 10.000đ. Hải set `pointsToUse` trên `PlaceBookingRequest` rồi gọi `placeBooking` (trừ điểm và lưu đơn trong cùng một giao dịch). Không gọi `usePoints` riêng rồi `placeBooking` trong cùng một lượt, kẻo trừ điểm hai lần.
+- Hủy đơn thì hoàn điểm đã dùng. Nếu đơn đã thanh toán thì trừ lại điểm đã cộng. Điểm không xuống dưới 0. Đơn `PENDING` có dùng điểm vẫn được hoàn điểm khi hủy.
 - Khách hủy được `PENDING` hoặc `PAID` **trước giờ chiếu**. Sau giờ chiếu thì không hủy.
-- Hủy đơn đã thanh toán thì trừ lại điểm đã cộng. Điểm không xuống dưới 0.
 - Admin hủy được cả sau giờ chiếu, và bấm xác nhận để đưa `PENDING` → `PAID` (lúc đó mới cộng điểm). `CONFIRMED` được hiểu là `PAID`.
 - QR là ảnh từ mã đơn: `https://api.qrserver.com/v1/create-qr-code/?size=190x190&color=110e0c&data={orderCode}`.
+- Email vé / email hủy: `TicketMail` gọi `com.cinema.util.MailUtil.send(to, subject, body)` nếu class đó có sẵn. Chưa có thì bỏ qua, đơn vẫn lưu. Như không tạo `MailUtil`.
 
 ---
 
@@ -82,14 +84,25 @@ req.setComboTotal(...);
 req.setFinalTotal(...);
 req.setMovieFormat(...);     // ví dụ "2D Phụ Đề"; bỏ trống thì mặc định "2D Phụ Đề"
 req.setPaid(true);           // false = PENDING, admin xác nhận sau
+req.setPointsToUse(0);       // số điểm khách muốn trừ; 1 điểm = 10.000đ
 OrderActionResult result = orderService.placeBooking(req);
 ```
 
+API điểm, gọi trực tiếp khi cần cộng/trừ ngoài lúc tạo đơn:
+
+```java
+LoyaltyService loyalty = new LoyaltyService();
+int balance = loyalty.getPoints(userId);
+balance = loyalty.addPoints(userId, 10);
+balance = loyalty.usePoints(userId, 5); // thiếu điểm thì ném IllegalStateException
+```
+
+- Lúc checkout chỉ dùng `setPointsToUse`. Đừng gọi thêm `usePoints` cho cùng đơn đó.
 - Không tạo entity `Booking` / `Ticket` khác. Dùng class sẵn trong `com.cinema.entity`.
-- Không sửa `OrderServlet`, `BookingDAO`, ba trang `WEB-INF/views/order/**`.
+- Không sửa `OrderServlet`, `BookingDAO`, `LoyaltyService`, ba trang `WEB-INF/views/order/**`.
 - Ghế đã nằm trong đơn chưa hủy thì `placeBooking` trả lỗi, không đặt trùng.
 
-### Ân — đăng nhập / user
+### Ân — đăng nhập / user / mail
 
 Trang của Như đọc `sessionScope.loginUser`. Cần có các getter (tên nào cũng được, thử lần lượt):
 
@@ -100,6 +113,14 @@ Trang của Như đọc `sessionScope.loginUser`. Cần có các getter (tên n�
 Nếu chưa có `setLoyaltyPoints`, điểm vẫn lưu ở `loyalty_accounts`. Header chỉ hiện đúng điểm khi session được cập nhật.
 
 Chưa có entity `User` trong repo. Như **chưa** sửa file user của Ân và **chưa** ghi điểm vào bảng `users`. Khi Ân thêm `User.loyaltyPoints`, báo Như để nối một lần, tránh hai sổ điểm.
+
+Mail xác nhận vé: Như gọi nếu có class `com.cinema.util.MailUtil` với đúng một trong các hàm static:
+
+```java
+public static void send(String to, String subject, String body)
+```
+
+`sendMail` hoặc `sendEmail` cùng 3 tham số String cũng được. Chưa merge class này thì app không lỗi, chỉ không gửi mail. Như không tạo file trong `com.cinema.util`.
 
 ### Phương — giao diện
 
@@ -123,7 +144,7 @@ Không sửa, không đổi tên, không tạo class trùng:
 - `src/main/java/com/cinema/entity/Ticket.java`
 - `src/main/java/com/cinema/entity/LoyaltyAccount.java`
 - `src/main/java/com/cinema/dao/order/**`
-- `src/main/java/com/cinema/service/order/**`
+- `src/main/java/com/cinema/service/order/**` (`OrderService`, `LoyaltyService`, `TicketMail`)
 - `src/main/java/com/cinema/order/**`
 - `src/main/java/com/cinema/dto/OrderView.java`, `PlaceBookingRequest.java`, `OrderActionResult.java`, `BookingStats.java`
 - `src/main/webapp/WEB-INF/views/order/**`
