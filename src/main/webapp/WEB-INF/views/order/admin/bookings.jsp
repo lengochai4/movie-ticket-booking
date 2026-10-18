@@ -47,6 +47,21 @@
             </div>
         </header>
 
+        <c:set var="msgError" value="${not empty errorMessage ? errorMessage : sessionScope.errorMessage}"/>
+        <c:set var="msgSuccess" value="${not empty successMessage ? successMessage : sessionScope.successMessage}"/>
+        <c:remove var="errorMessage" scope="session"/>
+        <c:remove var="successMessage" scope="session"/>
+        <c:if test="${not empty msgError}">
+            <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #f87171; color: #fecaca; border-radius: 8px; padding: 12px 16px;">
+                ${msgError}
+            </div>
+        </c:if>
+        <c:if test="${not empty msgSuccess}">
+            <div style="background: rgba(105, 219, 124, 0.15); border: 1px solid #69db7c; color: #69db7c; border-radius: 8px; padding: 12px 16px;">
+                ${msgSuccess}
+            </div>
+        </c:if>
+
         <%---- ================= 2. THỐNG KÊ NHANH (CARDS) ================= ----%>
         <section class="stats-grid">
             <div class="stat-card">
@@ -126,7 +141,7 @@
                     <tbody>
                         <c:choose>
                             <%-- Dữ liệu động khi Backend truyền ${orderList} --%>
-                            <c:when test="${not empty orderList}">
+                            <c:when test="${ordersBound}">
                                 <c:forEach var="o" items="${orderList}">
                                     <tr>
                                         <td><strong style="color: #fcca46; font-family: monospace;">#${o.orderCode}</strong></td>
@@ -148,6 +163,13 @@
                                         <td style="text-align: right;">
                                             <a href="${pageContext.request.contextPath}/order/ticket-detail?id=${o.orderCode}" 
                                                class="btn-action edit" title="Xem chi tiết vé & QR">👁️</a>
+                                            <c:if test="${o.status == 'PENDING'}">
+                                                <form action="${pageContext.request.contextPath}/admin/bookings/status" method="post" style="display:inline;">
+                                                    <input type="hidden" name="orderCode" value="${o.orderCode}">
+                                                    <input type="hidden" name="status" value="PAID">
+                                                    <button type="submit" class="btn-action edit" title="Xác nhận đã thanh toán">✓</button>
+                                                </form>
+                                            </c:if>
                                             <c:if test="${o.status != 'CANCELLED'}">
                                                 <button type="button" class="btn-action lock" title="Hủy vé" 
                                                         onclick="openCancelModal('${o.orderCode}', '${o.movieTitle}', '${o.seats}')">🚫</button>
@@ -155,6 +177,13 @@
                                         </td>
                                     </tr>
                                 </c:forEach>
+                                <c:if test="${empty orderList}">
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; color: #94a3b8; padding: 28px;">
+                                            Không có đơn vé nào khớp điều kiện tìm kiếm.
+                                        </td>
+                                    </tr>
+                                </c:if>
                             </c:when>
 
                             <%-- Dữ liệu mẫu test giao diện chuẩn cho Frontend --%>
