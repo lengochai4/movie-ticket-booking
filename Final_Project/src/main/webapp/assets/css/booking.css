@@ -1,0 +1,1196 @@
+@charset "UTF-8";
+
+/* ================= CONTAINER TỔNG ================= */
+.booking-page-container {
+    min-height: calc(100vh - 180px);
+    padding: 24px 20px 60px;
+    background: radial-gradient(circle at top center, #1a1412 0%, #0d0b0a 100%);
+    display: flex;
+    justify-content: center;
+}
+
+.booking-main-layout {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Nút quay lại */
+.booking-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #b5a995;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.2s;
+    width: fit-content;
+}
+
+.booking-back-btn:hover {
+    color: #fcca46;
+}
+
+/* ================= 1. FILM REEL TICKET BANNER ================= */
+.movie-ticket-banner {
+    position: relative;
+    background: #141211;
+    border: 1px solid rgba(252, 202, 70, 0.25);
+    border-radius: 12px;
+    padding: 24px 36px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+/* Hiệu ứng đục lỗ cuộn phim cổ điển */
+.movie-ticket-banner::before,
+.movie-ticket-banner::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: radial-gradient(circle, #0d0b0a 4px, transparent 5px);
+    background-size: 20px 10px;
+}
+.movie-ticket-banner::before { top: 4px; }
+.movie-ticket-banner::after { bottom: 4px; }
+
+.banner-poster {
+    width: 72px;
+    height: 100px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1.5px solid rgba(252, 202, 70, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
+}
+
+.banner-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.banner-tag {
+    display: inline-block;
+    background: rgba(120, 0, 0, 0.4);
+    border: 1px solid #c4161f;
+    color: #fcca46;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    width: fit-content;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.banner-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    color: #f6ead2;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.banner-meta {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 13.5px;
+    color: #b5a995;
+    flex-wrap: wrap;
+}
+
+.banner-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ================= 2. STEPPER PROGRESS BAR ================= */
+.booking-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #161413;
+    border: 1px solid rgba(252, 202, 70, 0.15);
+    border-radius: 10px;
+    padding: 16px 24px;
+    gap: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    flex-wrap: wrap;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #7d7265;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #23201e;
+    color: #8c8275;
+    border: 1px solid #3c3733;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12.5px;
+    font-weight: 700;
+}
+
+.step-item.active {
+    color: #f6ead2;
+    font-weight: 700;
+}
+
+.step-item.active .step-circle {
+    background: #780000;
+    color: #fcca46;
+    border-color: #fcca46;
+    box-shadow: 0 0 10px rgba(252, 202, 70, 0.4);
+}
+
+.step-item.completed {
+    color: #69db7c;
+}
+
+.step-item.completed .step-circle {
+    background: rgba(43, 138, 62, 0.25);
+    border-color: #2b8a3e;
+    color: #69db7c;
+}
+
+.step-divider {
+    width: 40px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ================= 3. KHUNG BỐ CỤC NỘI DUNG 2 CỘT ================= */
+.booking-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 28px;
+    align-items: start;
+}
+
+/* Cột trái */
+.booking-left-panel {
+    background: #161413;
+    border: 1px solid rgba(252, 202, 70, 0.2);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Cột phải: Cart Summary Sticky */
+.booking-summary-card {
+    position: sticky;
+    top: 24px;
+    background: #161413;
+    border: 1px solid rgba(252, 202, 70, 0.25);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+}
+
+.summary-header h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f6ead2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.btn-clear-seats {
+    background: transparent;
+    border: none;
+    color: #b5a995;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.btn-clear-seats:hover {
+    color: #ff8787;
+}
+
+.selected-seats-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 34px;
+}
+
+.seat-pill {
+    background: rgba(120, 0, 0, 0.4);
+    border: 1px solid #fcca46;
+    color: #fcca46;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.summary-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 13.5px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+    padding-bottom: 16px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #b5a995;
+}
+
+.summary-row.total-row {
+    color: #f6ead2;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.summary-total-price {
+    font-size: 26px;
+    font-weight: 800;
+    color: #fcca46;
+    text-align: right;
+    line-height: 1.1;
+    font-family: inherit;
+}
+
+.btn-proceed {
+    width: 100%;
+    padding: 14px;
+    background: #780000;
+    border: 1px solid #fcca46;
+    border-radius: 8px;
+    color: #fcca46;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+
+.btn-proceed:hover {
+    background: #920000;
+    box-shadow: 0 0 16px rgba(252, 202, 70, 0.45);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.btn-proceed:disabled {
+    background: #2b2724;
+    border-color: #3c3733;
+    color: #6e6459;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Nút quay lại đặt ngay dưới nút tiếp tục */
+.btn-back-step {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid #3c3733;
+    border-radius: 8px;
+    color: #b5a995;
+    font-size: 13.5px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.btn-back-step:hover {
+    border-color: #fcca46;
+    color: #fcca46;
+    background: rgba(252, 202, 70, 0.06);
+}
+
+/* Logo VNPAY & MoMo thương hiệu chính thức sắc nét */
+.payment-brand-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+}
+
+.momo-brand-logo {
+    background: linear-gradient(135deg, #d82d8b, #a50064);
+    box-shadow: 0 4px 12px rgba(165, 0, 100, 0.35);
+}
+
+.vnpay-brand-logo {
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* ================= 4. SƠ ĐỒ CHỌN GHẾ (SEAT MAP) ================= */
+.seat-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    font-size: 13px;
+    color: #b5a995;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.legend-box.standard { background: #3a3532; border: 1px solid #5a524e; }
+.legend-box.vip { background: #b08d2b; border: 1px solid #fcca46; }
+.legend-box.couple { background: #2b4c7e; border: 1px solid #4a7bc7; }
+.legend-box.selected { background: #780000; border: 1.5px solid #fcca46; }
+.legend-box.sold { background: #221f1d; border: 1px solid #332e2b; opacity: 0.4; }
+
+/* Màn hình cong */
+.screen-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 36px;
+}
+
+.screen-curve {
+    width: 75%;
+    height: 8px;
+    border-top: 3px solid #fcca46;
+    border-radius: 50% / 100% 100% 0 0;
+    box-shadow: 0 -4px 18px rgba(252, 202, 70, 0.4);
+    margin-bottom: 10px;
+}
+
+.screen-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #8c8275;
+    text-transform: uppercase;
+}
+
+/* Lưới ghế */
+.seats-grid-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+}
+
+.seat-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.row-label {
+    width: 24px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #8c8275;
+    text-align: center;
+}
+
+.seat-cell {
+    width: 32px;
+    height: 32px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.seat-cell.standard {
+    background: #3a3532;
+    color: #e6dac3;
+    border-color: #5a524e;
+}
+
+.seat-cell.vip {
+    background: #b08d2b;
+    color: #ffffff;
+    border-color: #fcca46;
+}
+
+.seat-cell.couple {
+    width: 68px;
+    background: #2b4c7e;
+    color: #ffffff;
+    border-color: #4a7bc7;
+}
+
+.seat-cell:not(.sold):hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 8px rgba(252, 202, 70, 0.5);
+    border-color: #fcca46;
+}
+
+.seat-cell.selected {
+    background: #780000 !important;
+    color: #fcca46 !important;
+    border: 1.5px solid #fcca46 !important;
+    box-shadow: 0 0 10px rgba(252, 202, 70, 0.6);
+    transform: scale(1.08);
+}
+
+.seat-cell.sold {
+    background: #221f1d !important;
+    color: #554d46 !important;
+    border-color: #332e2b !important;
+    cursor: not-allowed;
+    text-decoration: line-through;
+    opacity: 0.45;
+}
+
+/* ================= 5. DANH SÁCH BẮP NƯỚC (COMBO SELECTION) ================= */
+.combos-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.combo-card {
+    background: #1b1716;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: border-color 0.2s;
+}
+
+.combo-card:hover {
+    border-color: rgba(252, 202, 70, 0.3);
+}
+
+.combo-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(252, 202, 70, 0.2);
+    flex-shrink: 0;
+}
+
+.combo-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.combo-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f6ead2;
+}
+
+.combo-desc {
+    font-size: 13px;
+    color: #8c8275;
+    line-height: 1.4;
+}
+
+.combo-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fcca46;
+    margin-top: 2px;
+}
+
+.quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #23201e;
+    border: 1px solid #3c3733;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+
+.btn-qty {
+    width: 28px;
+    height: 28px;
+    background: #161413;
+    border: 1px solid #3c3733;
+    border-radius: 4px;
+    color: #fcca46;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-qty:hover {
+    border-color: #fcca46;
+    background: #780000;
+}
+
+.qty-number {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f6ead2;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* ================= 6. XÁC NHẬN & THANH TOÁN (CHECKOUT) ================= */
+.checkout-section-block {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+.checkout-section-block h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: #fcca46;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+    margin: 0;
+}
+
+.checkout-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.checkout-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.checkout-input-group label {
+    font-size: 13.5px;
+    color: #b5a995;
+    font-weight: 500;
+}
+
+.checkout-input {
+    width: 100%;
+    padding: 11px 14px;
+    background: #23201e;
+    border: 1px solid #3c3733;
+    border-radius: 6px;
+    color: #f6ead2;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.checkout-input:focus {
+    border-color: #fcca46;
+}
+
+/* Cổng thanh toán */
+.payment-methods-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.payment-method-card {
+    background: #1c181a;
+    border: 2px solid #3c3733;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.payment-method-card input[type="radio"] {
+    accent-color: #fcca46;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.payment-brand-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.payment-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.payment-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f6ead2;
+}
+
+.payment-desc {
+    font-size: 12.5px;
+    color: #8c8275;
+}
+
+.payment-badge {
+    background: rgba(252, 202, 70, 0.12);
+    border: 1px solid rgba(252, 202, 70, 0.35);
+    color: #fcca46;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.payment-badge.momo-badge {
+    background: rgba(216, 45, 139, 0.15);
+    border-color: rgba(216, 45, 139, 0.45);
+    color: #ff60b6;
+}
+
+.payment-badge.vnpay-badge {
+    background: rgba(0, 91, 170, 0.15);
+    border-color: rgba(0, 91, 170, 0.45);
+    color: #4da3ff;
+}
+
+.payment-method-card:hover {
+    border-color: rgba(252, 202, 70, 0.5);
+    background: rgba(252, 202, 70, 0.04);
+}
+
+.payment-method-card.selected,
+.payment-method-card:has(input[type="radio"]:checked) {
+    border-color: #fcca46;
+    background: rgba(252, 202, 70, 0.09);
+    box-shadow: 0 0 14px rgba(252, 202, 70, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .booking-content-grid {
+        grid-template-columns: 1fr;
+    }
+    .booking-summary-card {
+        position: static;
+    }
+    .checkout-form-grid {
+        grid-template-columns: 1fr;
+    }
+    .payment-methods-grid {
+        grid-template-columns: 1fr;
+    }
+    .cinema-ticket-card {
+        position: static;
+    }
+}
+
+/* ================= TẤM VÉ XEM PHIM CỔ ĐIỂN TINH TẾ (REFINED ADMISSION TICKET) ================= */
+.cinema-ticket-card {
+    position: sticky;
+    top: 24px;
+    background: linear-gradient(165deg, #8f1217 0%, #680d11 100%);
+    border: 2px dashed rgba(255, 255, 255, 0.7);
+    border-radius: 14px;
+    padding: 26px 24px 22px 24px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 26px rgba(143, 18, 23, 0.3);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+/* Hai vết cắt khuyết bán nguyệt 2 bên mép vé */
+.ticket-cutout-left,
+.ticket-cutout-right {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #0f0d0c;
+    border: 2px dashed rgba(255, 255, 255, 0.7);
+    top: 116px;
+    z-index: 3;
+    box-sizing: border-box;
+}
+
+.ticket-cutout-left {
+    left: -15px;
+}
+
+.ticket-cutout-right {
+    right: -15px;
+}
+
+/* Header vé phong cách rạp chiếu phim thanh lịch */
+.ticket-header-admit {
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.ticket-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(252, 202, 70, 0.45);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fcca46;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.ticket-title-admit {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: #ffffff;
+    text-transform: uppercase;
+    margin: 0;
+    line-height: 1.1;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.ticket-subtitle-theater {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    color: #fcca46;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
+/* Đường cắt cuộn vé nối giữa 2 vết cắt */
+.ticket-perforation {
+    border: none;
+    border-top: 1.5px dashed rgba(255, 255, 255, 0.35);
+    margin: 16px -24px 18px -24px;
+}
+
+/* Tiêu đề & Thông tin phim */
+.ticket-info-group {
+    margin-bottom: 12px;
+}
+
+.ticket-field-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 4px;
+    display: block;
+}
+
+.ticket-movie-title {
+    font-size: 17.5px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.35;
+    margin-bottom: 12px;
+}
+
+/* Bảng thông số 3 cột Suất - Ngày - Phòng: Tách biệt từng ô riêng biệt cực kỳ rõ ràng */
+.ticket-meta-box {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr 0.85fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.ticket-meta-item {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.ticket-meta-item:hover {
+    border-color: rgba(252, 202, 70, 0.5);
+    transform: translateY(-1px);
+}
+
+.ticket-meta-item .ticket-field-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #e5c07b;
+    margin-bottom: 5px;
+}
+
+.ticket-meta-item .ticket-meta-val {
+    font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #ffffff;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+}
+
+/* Danh sách ghế ngồi dạng thẻ thanh lịch */
+.ticket-seats-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.ticket-seat-tag {
+    background: rgba(252, 202, 70, 0.16);
+    border: 1px solid #fcca46;
+    color: #fcca46;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Chi tiết bảng giá vé & bắp nước */
+.ticket-pricing-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.22);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.ticket-pricing-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ticket-pricing-row strong {
+    color: #ffffff;
+}
+
+/* Khung đen tổng tiền viền kim loại sang trọng */
+.ticket-total-box {
+    background: #110e0c;
+    border: 1.5px solid rgba(252, 202, 70, 0.45);
+    border-radius: 8px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 14px 0 16px 0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.ticket-total-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #e5c07b;
+    text-transform: uppercase;
+}
+
+.ticket-total-amount {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 24px;
+    font-weight: 900;
+    color: #fcca46;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+
+/* Nút xác nhận thanh toán nổi bật với font chữ rõ ràng, dễ nhìn */
+.btn-ticket-submit {
+    width: 100%;
+    background: #fcca46;
+    color: #161108;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(252, 202, 70, 0.35);
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+}
+
+.btn-ticket-submit:hover {
+    background: #ffd875;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(252, 202, 70, 0.5);
+    color: #000000;
+}
+
+.btn-ticket-submit:disabled {
+    background: #2b231c;
+    color: #726250;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.btn-ticket-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 13px;
+    margin-top: 10px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.btn-ticket-back:hover {
+    color: #fcca46;
+}
+
+/* Mã vạch Barcode thanh lịch & Mã số vé */
+.ticket-barcode-wrap {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1.5px dashed rgba(255, 255, 255, 0.25);
+    text-align: center;
+}
+
+.ticket-barcode-stripes {
+    height: 38px;
+    background: repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.9) 0px,
+        rgba(255, 255, 255, 0.9) 2px,
+        transparent 2px,
+        transparent 4.5px,
+        rgba(255, 255, 255, 0.9) 4.5px,
+        rgba(255, 255, 255, 0.9) 7px,
+        transparent 7px,
+        transparent 9.5px,
+        rgba(255, 255, 255, 0.9) 9.5px,
+        rgba(255, 255, 255, 0.9) 11px,
+        transparent 11px,
+        transparent 14px,
+        rgba(255, 255, 255, 0.9) 14px,
+        rgba(255, 255, 255, 0.9) 18px,
+        transparent 18px,
+        transparent 21px
+    );
+    border-radius: 2px;
+    margin-bottom: 6px;
+}
+
+.ticket-barcode-serial {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    color: rgba(255, 255, 255, 0.65);
+    text-transform: uppercase;
+}
+
+/* ================= PHẦN QUÉT MÃ QR CHO TICKET-DETAIL (E-TICKET PASS) ================= */
+.eticket-standalone-layout {
+    max-width: 440px;
+    margin: 30px auto 70px auto;
+    padding: 0 16px;
+}
+
+.ticket-qr-section {
+    text-align: center;
+    margin-top: 4px;
+}
+
+.ticket-qr-instruction {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.88);
+    margin: 0 0 14px 0;
+    line-height: 1.5;
+}
+
+.ticket-qr-card {
+    display: inline-block;
+    background: #ffffff;
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.ticket-qr-card img {
+    display: block;
+    width: 190px;
+    height: 190px;
+    border-radius: 4px;
+}
+
+.ticket-qr-notice {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 12px;
+    line-height: 1.5;
+}
+
+.eticket-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.btn-ticket-print-gold {
+    background: rgba(252, 202, 70, 0.15);
+    color: #fcca46;
+    border: 1px solid rgba(252, 202, 70, 0.4);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-ticket-print-gold:hover {
+    background: #fcca46;
+    color: #110e0c;
+}
+
+@media print {
+    header, footer, .eticket-action-bar {
+        display: none !important;
+    }
+    body, .booking-page-container {
+        background: #ffffff !important;
+        padding: 0 !important;
+    }
+    .cinema-ticket-card {
+        box-shadow: none !important;
+        border: 2px dashed #000000 !important;
+        color: #000000 !important;
+        background: #ffffff !important;
+        position: static !important;
+    }
+    .ticket-title-admit, .ticket-movie-title, .ticket-total-amount, .ticket-meta-val {
+        color: #000000 !important;
+    }
+}
+
