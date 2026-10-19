@@ -143,7 +143,7 @@ public class AdminMovieDAO {
 
     /**
      * Xóa phim cùng các suất chiếu của phim trong một giao dịch.
-     * Nếu suất chiếu đã có đơn đặt vé, khóa ngoại bookings.showtime_id sẽ chặn lại (SQLState 23503).
+     * Nếu suất chiếu đã có đơn đặt vé, khóa ngoại bookings.showtimeid sẽ chặn lại (SQLState 23503).
      * Trả về false nếu không có phim nào bị xóa (mã không tồn tại).
      */
     public boolean delete(String movieId) {

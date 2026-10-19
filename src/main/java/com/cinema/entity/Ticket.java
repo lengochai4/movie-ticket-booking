@@ -20,23 +20,23 @@ public class Ticket implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @Column(name = "ticket_id", length = 36)
+    @Column(name = "ticketid", length = 36)
     private String ticketID;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false)
+    @JoinColumn(name = "bookingid", nullable = false)
     private Booking booking;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seat_id")
+    @JoinColumn(name = "seatid")
     private Seat seat;
 
-    @Column(name = "seat_label", length = 40)
+    @Column(name = "seatlabel", length = 40)
     private String seatLabel;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private TicketStatus status;
+    @Column(name = "ticketstatus", nullable = false, length = 20)
+    private TicketStatus ticketStatus;
 
     private Double price;
 
@@ -75,12 +75,12 @@ public class Ticket implements Serializable {
         this.seatLabel = seatLabel;
     }
 
-    public TicketStatus getStatus() {
-        return status;
+    public TicketStatus getTicketStatus() {
+        return ticketStatus;
     }
 
-    public void setStatus(TicketStatus status) {
-        this.status = status;
+    public void setTicketStatus(TicketStatus ticketStatus) {
+        this.ticketStatus = ticketStatus;
     }
 
     public Double getPrice() {

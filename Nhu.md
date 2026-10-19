@@ -4,7 +4,7 @@ Người phụ trách: **Như** (Backend, Nhóm 3 — Cinetik).
 
 Phạm vi: lịch sử đặt vé, hủy booking, vé điện tử (QR), điểm thưởng, admin quản lý trạng thái đơn vé.
 
-`persistence.xml`, `pom.xml`, `web.xml` và code của Phương, Ân, Hải, Vinh **không bị sửa**.
+`persistence.xml` chỉ được thêm cấu hình connection pool. Không xóa các property `eclipselink.jdbc.connections.*`.
 
 ---
 
@@ -45,11 +45,13 @@ Biến request chính:
 EclipseLink tự tạo khi app kết nối (`create-or-extend-tables`):
 
 - `bookings` — đơn vé, mã `CNK-năm-00001`, snapshot tên phim / rạp / phòng / ghế
-- `tickets` — từng ghế; hủy vé thì `status = CANCELLED` để nhả ghế
-- `loyalty_accounts` — điểm thưởng theo `user_id` (String)
+- `tickets` — từng ghế; hủy vé thì `ticketstatus = CANCELLED` để nhả ghế
+- `loyalty_accounts` — điểm thưởng theo `userid` (varchar)
 
 Entity: `com.cinema.entity.Booking`, `Ticket`, `LoyaltyAccount`.  
 Đăng ký trong `src/main/resources/META-INF/orm.xml`, **không** thêm `<class>` vào `persistence.xml`.
+
+Tên field Java theo diagram và entity của Phương: `userID`, `bookingStatus`, `ticketStatus`. Cột PostgreSQL viết liền, giống bảng `booking` / `movies` đang có trên DB: `userid`, `bookingid`, `bookingstatus`, `ticketid`, `ticketstatus`. Kiểu `userid` là `varchar`, giống `users.user_id` và `movies.movieid`, vì bảng diagram `"User".userid` là `integer` nhưng quy ước khóa chính của nhóm đã chốt là `String`. Tên bảng giữ `bookings`, `tickets`, `loyalty_accounts` để không đè lên bảng `booking` / `ticket` (đã có dữ liệu, `userid` kiểu integer).
 
 ### Quy tắc nghiệp vụ
 
@@ -149,7 +151,11 @@ Không sửa, không đổi tên, không tạo class trùng:
 - `src/main/java/com/cinema/dto/OrderView.java`, `PlaceBookingRequest.java`, `OrderActionResult.java`, `BookingStats.java`
 - `src/main/webapp/WEB-INF/views/order/**`
 - `src/main/resources/META-INF/orm.xml`
+- `src/main/java/com/cinema/util/ConnectionPool.java`
+- `src/main/java/com/cinema/util/JPAUtil.java` (chỉ thêm lookup pool)
+- `src/main/webapp/META-INF/context.xml`
+- `src/main/resources/META-INF/persistence.xml` (chỉ thêm `eclipselink.jdbc.connections.*`)
 
-`orm.xml` chỉ liệt kê 3 entity của Như. Nếu người khác cần file này, **thêm dòng `<entity>`**, không xóa 3 dòng sẵn có. Không cần sửa `persistence.xml` cho phần của Như.
+`orm.xml` chỉ liệt kê 3 entity của Như. Nếu người khác cần file này, **thêm dòng `<entity>`**, không xóa 3 dòng sẵn có. Không xóa các property connection pool trong `persistence.xml`.
 
 Khóa chính toàn hệ thống là `String`. Thông báo lỗi / thành công dùng `errorMessage` và `successMessage`. Danh sách rỗng là `new ArrayList<>()`, không trả `null`.

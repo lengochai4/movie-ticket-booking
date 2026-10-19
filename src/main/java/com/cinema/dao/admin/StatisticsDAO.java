@@ -20,24 +20,24 @@ import java.util.Map;
 /**
  * Truy vấn thống kê CHỈ ĐỌC trên bảng bookings / tickets (do Hải, Như quản lý),
  * JDBC: ConnectionPool + PreparedStatement.
- * Chỉ tính các đơn đã thanh toán (status = PAID), mốc thời gian theo bookings.created_at.
+ * Chỉ tính các đơn đã thanh toán (bookingstatus = PAID), mốc thời gian theo bookings.createdat.
  */
 public class StatisticsDAO {
 
     // Số vé của 1 đơn: đếm vé chưa hủy trong bảng tickets, nếu chưa có thì đếm số ghế trong cột seats ("F5,F6")
     private static final String TICKETS_OF_BOOKING =
-            "COALESCE(NULLIF((SELECT COUNT(*) FROM tickets t WHERE t.booking_id = b.booking_id AND t.status <> 'CANCELLED'), 0), "
+            "COALESCE(NULLIF((SELECT COUNT(*) FROM tickets t WHERE t.bookingid = b.bookingid AND t.ticketstatus <> 'CANCELLED'), 0), "
             + "CARDINALITY(STRING_TO_ARRAY(NULLIF(b.seats, ''), ',')), 0)";
 
-    // Tiền vé của 1 đơn: ticket_price, nếu trống thì lấy tổng tiền trừ tiền combo
+    // Tiền vé của 1 đơn: ticketprice, nếu trống thì lấy tổng tiền trừ tiền combo
     private static final String TICKET_REVENUE_OF_BOOKING =
-            "COALESCE(b.ticket_price, COALESCE(b.total_price, 0) - COALESCE(b.combo_price, 0))";
+            "COALESCE(b.ticketprice, COALESCE(b.totalprice, 0) - COALESCE(b.comboprice, 0))";
 
     // Tổng hợp doanh thu trong khoảng [from, to)
     public DashboardSummaryDTO getSummary(String paidStatus, LocalDateTime from, LocalDateTime to) {
-        String sql = "SELECT COALESCE(SUM(b.total_price), 0), COALESCE(SUM(" + TICKET_REVENUE_OF_BOOKING + "), 0), "
-                + "COALESCE(SUM(b.combo_price), 0), COUNT(*), COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) "
-                + "FROM bookings b WHERE b.status = ? AND b.created_at >= ? AND b.created_at < ?";
+        String sql = "SELECT COALESCE(SUM(b.totalprice), 0), COALESCE(SUM(" + TICKET_REVENUE_OF_BOOKING + "), 0), "
+                + "COALESCE(SUM(b.comboprice), 0), COUNT(*), COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) "
+                + "FROM bookings b WHERE b.bookingstatus = ? AND b.createdat >= ? AND b.createdat < ?";
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = null;
         PreparedStatement ps = null;
@@ -66,8 +66,8 @@ public class StatisticsDAO {
 
     // Thời điểm đặt và tổng tiền của các đơn đã thanh toán, để Servlet chia theo giờ/ngày/tháng
     public List<RevenueRecordDTO> getPaidBookingRecords(String paidStatus, LocalDateTime from, LocalDateTime to) {
-        String sql = "SELECT b.created_at, COALESCE(b.total_price, 0) FROM bookings b "
-                + "WHERE b.status = ? AND b.created_at >= ? AND b.created_at < ? ORDER BY b.created_at";
+        String sql = "SELECT b.createdat, COALESCE(b.totalprice, 0) FROM bookings b "
+                + "WHERE b.bookingstatus = ? AND b.createdat >= ? AND b.createdat < ? ORDER BY b.createdat";
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = null;
         PreparedStatement ps = null;
@@ -97,12 +97,12 @@ public class StatisticsDAO {
 
     // Doanh thu theo cụm rạp
     public List<CinemaRevenueDTO> getRevenueByCinema(String paidStatus, LocalDateTime from, LocalDateTime to) {
-        String sql = "SELECT COALESCE(c.name, b.cinema_name, 'Khác'), COALESCE(SUM(b.total_price), 0) "
+        String sql = "SELECT COALESCE(c.name, b.cinemaname, 'Khác'), COALESCE(SUM(b.totalprice), 0) "
                 + "FROM bookings b "
-                + "LEFT JOIN showtimes s ON s.showtimeid = b.showtime_id "
+                + "LEFT JOIN showtimes s ON s.showtimeid = b.showtimeid "
                 + "LEFT JOIN rooms r ON r.roomid = s.room_id "
                 + "LEFT JOIN cinema c ON c.cinemaid = r.cinema_id "
-                + "WHERE b.status = ? AND b.created_at >= ? AND b.created_at < ? "
+                + "WHERE b.bookingstatus = ? AND b.createdat >= ? AND b.createdat < ? "
                 + "GROUP BY 1 ORDER BY 2 DESC";
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = null;
@@ -132,11 +132,11 @@ public class StatisticsDAO {
     // Top phim theo doanh thu (phần trăm đóng góp do Servlet tính)
     public List<MovieRevenueDTO> getTopMovies(String paidStatus, LocalDateTime from, LocalDateTime to, int limit) {
         String sql = "SELECT m.movieid, m.title, m.genre, m.duration, m.posterurl, "
-                + "COUNT(DISTINCT b.showtime_id), COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0), COALESCE(SUM(b.total_price), 0) "
+                + "COUNT(DISTINCT b.showtimeid), COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0), COALESCE(SUM(b.totalprice), 0) "
                 + "FROM bookings b "
-                + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
+                + "JOIN showtimes s ON s.showtimeid = b.showtimeid "
                 + "JOIN movies m ON m.movieid = s.movie_id "
-                + "WHERE b.status = ? AND b.created_at >= ? AND b.created_at < ? "
+                + "WHERE b.bookingstatus = ? AND b.createdat >= ? AND b.createdat < ? "
                 + "GROUP BY m.movieid, m.title, m.genre, m.duration, m.posterurl "
                 + "ORDER BY 8 DESC LIMIT ?";
         ConnectionPool pool = ConnectionPool.getInstance();
@@ -174,8 +174,8 @@ public class StatisticsDAO {
     // Số vé đã bán / tổng số ghế của các suất chiếu bắt đầu trong [from, to)
     public SeatFillDTO getSeatFill(String paidStatus, LocalDateTime from, LocalDateTime to) {
         String soldSql = "SELECT COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) FROM bookings b "
-                + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
-                + "WHERE b.status = ? AND s.starttime >= ? AND s.starttime < ?";
+                + "JOIN showtimes s ON s.showtimeid = b.showtimeid "
+                + "WHERE b.bookingstatus = ? AND s.starttime >= ? AND s.starttime < ?";
         String capacitySql = "SELECT COALESCE(SUM(r.capacity), 0) FROM showtimes s "
                 + "JOIN rooms r ON r.roomid = s.room_id "
                 + "WHERE s.starttime >= ? AND s.starttime < ?";
@@ -213,10 +213,10 @@ public class StatisticsDAO {
 
     // Số vé đã bán (đơn PAID) của từng suất chiếu bắt đầu trong [from, to): showtimeID -> số vé
     public Map<String, Long> getSoldTicketsByShowtime(String paidStatus, LocalDateTime from, LocalDateTime to) {
-        String sql = "SELECT b.showtime_id, COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) FROM bookings b "
-                + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
-                + "WHERE b.status = ? AND s.starttime >= ? AND s.starttime < ? "
-                + "GROUP BY b.showtime_id";
+        String sql = "SELECT b.showtimeid, COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) FROM bookings b "
+                + "JOIN showtimes s ON s.showtimeid = b.showtimeid "
+                + "WHERE b.bookingstatus = ? AND s.starttime >= ? AND s.starttime < ? "
+                + "GROUP BY b.showtimeid";
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = null;
         PreparedStatement ps = null;
@@ -241,7 +241,7 @@ public class StatisticsDAO {
 
     // Số đơn đặt vé chưa hủy (PENDING hoặc PAID) của 1 suất chiếu, dùng để chặn sửa/xóa suất đã bán vé
     public long countOpenBookings(String showtimeId, String cancelledStatus) {
-        String sql = "SELECT COUNT(*) FROM bookings b WHERE b.showtime_id = ? AND b.status <> ?";
+        String sql = "SELECT COUNT(*) FROM bookings b WHERE b.showtimeid = ? AND b.bookingstatus <> ?";
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = null;
         PreparedStatement ps = null;

@@ -25,16 +25,16 @@ public class Booking implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @Column(name = "booking_id", length = 36)
+    @Column(name = "bookingid", length = 36)
     private String bookingID;
 
-    @Column(name = "order_code", nullable = false, unique = true, length = 40)
+    @Column(name = "ordercode", nullable = false, unique = true, length = 40)
     private String orderCode;
 
-    @Column(name = "user_id", length = 36)
-    private String userId;
+    @Column(name = "userid", length = 36)
+    private String userID;
 
-    @Column(name = "customer_name", length = 255)
+    @Column(name = "customername", length = 255)
     private String customerName;
 
     @Column(length = 30)
@@ -44,53 +44,53 @@ public class Booking implements Serializable {
     private String email;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "showtime_id")
+    @JoinColumn(name = "showtimeid")
     private Showtime showtime;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private BookingStatus status;
+    @Column(name = "bookingstatus", nullable = false, length = 20)
+    private BookingStatus bookingStatus;
 
-    @Column(name = "total_price")
+    @Column(name = "totalprice")
     private Double totalPrice;
 
-    @Column(name = "ticket_price")
+    @Column(name = "ticketprice")
     private Double ticketPrice;
 
-    @Column(name = "combo_price")
+    @Column(name = "comboprice")
     private Double comboPrice;
 
-    @Column(name = "points_earned")
+    @Column(name = "pointsearned")
     private Integer pointsEarned;
 
-    @Column(name = "points_used")
+    @Column(name = "pointsused")
     private Integer pointsUsed;
 
-    @Column(name = "points_reversed", nullable = false)
+    @Column(name = "pointsreversed", nullable = false)
     private boolean pointsReversed;
 
-    @Column(name = "movie_title", length = 255)
+    @Column(name = "movietitle", length = 255)
     private String movieTitle;
 
-    @Column(name = "poster_url", length = 1000)
+    @Column(name = "posterurl", length = 1000)
     private String posterURL;
 
-    @Column(name = "age_rating", length = 10)
+    @Column(name = "agerating", length = 10)
     private String ageRating;
 
-    @Column(name = "movie_format", length = 80)
+    @Column(name = "movieformat", length = 80)
     private String movieFormat;
 
-    @Column(name = "cinema_name", length = 255)
+    @Column(name = "cinemaname", length = 255)
     private String cinemaName;
 
-    @Column(name = "cinema_address", length = 500)
+    @Column(name = "cinemaaddress", length = 500)
     private String cinemaAddress;
 
-    @Column(name = "room_name", length = 100)
+    @Column(name = "roomname", length = 100)
     private String roomName;
 
-    @Column(name = "show_start")
+    @Column(name = "showstart")
     private LocalDateTime showStart;
 
     @Column(length = 500)
@@ -99,13 +99,13 @@ public class Booking implements Serializable {
     @Column(columnDefinition = "TEXT")
     private String combos;
 
-    @Column(name = "cancel_reason", length = 500)
+    @Column(name = "cancelreason", length = 500)
     private String cancelReason;
 
-    @Column(name = "created_at")
+    @Column(name = "createdat")
     private LocalDateTime createdAt;
 
-    @Column(name = "cancelled_at")
+    @Column(name = "cancelledat")
     private LocalDateTime cancelledAt;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -141,12 +141,12 @@ public class Booking implements Serializable {
         this.orderCode = orderCode;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getUserID() {
+        return userID;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setUserID(String userID) {
+        this.userID = userID;
     }
 
     public String getCustomerName() {
@@ -181,12 +181,12 @@ public class Booking implements Serializable {
         this.showtime = showtime;
     }
 
-    public BookingStatus getStatus() {
-        return status;
+    public BookingStatus getBookingStatus() {
+        return bookingStatus;
     }
 
-    public void setStatus(BookingStatus status) {
-        this.status = status;
+    public void setBookingStatus(BookingStatus bookingStatus) {
+        this.bookingStatus = bookingStatus;
     }
 
     public Double getTotalPrice() {

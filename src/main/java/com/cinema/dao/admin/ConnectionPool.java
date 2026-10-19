@@ -17,8 +17,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 /**
- * Connection pool theo mẫu sách Murach (Chương 12): lấy DataSource "jdbc/cinema" qua JNDI,
- * khai báo trong META-INF/context.xml.
+ * Connection pool theo mẫu sách Murach (Chương 12): lấy DataSource "jdbc/CinemaDB" qua JNDI,
+ * khai báo trong META-INF/context.xml (dùng chung với JPAUtil).
  *
  * Khi Tomcat chạy bằng file context riêng (SmartTomcat trong IntelliJ, conf/Catalina/localhost/...),
  * Tomcat bỏ qua META-INF/context.xml nên không có JNDI. Khi đó tự tạo pool bằng thư viện pool có sẵn
@@ -26,7 +26,7 @@ import org.w3c.dom.NodeList;
  */
 public class ConnectionPool {
 
-    private static final String JNDI_NAME = "java:comp/env/jdbc/cinema";
+    private static final String JNDI_NAME = "java:comp/env/jdbc/CinemaDB";
     private static final String TOMCAT_DBCP = "org.apache.tomcat.dbcp.dbcp2.BasicDataSource";
 
     private static ConnectionPool pool = null;
