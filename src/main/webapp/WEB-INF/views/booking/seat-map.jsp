@@ -104,12 +104,15 @@
 
                                 <c:set var="basePrice" value="${seat.type == 'COUPLE' ? 95000 : (seat.type == 'VIP' ? 65000 : 45000)}" />
                                 <c:set var="computedPrice" value="${seat.extraPrice > 0 ? (45000 + seat.extraPrice) : basePrice}" />
+                                <c:set var="seatCode" value="${not empty seat.row and not empty seat.column ? seat.row.concat(seat.column) : seat.seatID}" />
 
                                 <div class="seat-cell ${seat.type.toLowerCase()} ${!seat.available ? 'sold' : ''}" 
                                      data-id="${seat.seatID}" 
+                                     data-label="${seatCode}"
                                      data-type="${seat.type}" 
-                                     data-price="${computedPrice}">
-                                    ${seat.seatID}
+                                     data-price="${computedPrice}"
+                                     title="Ghế ${seatCode} (${seat.type})">
+                                    ${seatCode}
                                 </div>
 
                                 <c:if test="${status.last}">
@@ -252,6 +255,7 @@
             if (!cell || cell.classList.contains('sold')) return;
 
             const id = cell.dataset.id;
+            const label = cell.dataset.label || cell.textContent.trim();
             const price = parseInt(cell.dataset.price, 10) || 45000;
             const type = cell.dataset.type;
 
@@ -264,7 +268,7 @@
                     return;
                 }
                 cell.classList.add('selected');
-                selectedSeats.set(id, { price, type });
+                selectedSeats.set(id, { price, type, label });
             }
 
             updateUI();
@@ -285,9 +289,10 @@
                 totalPrice += data.price;
                 seatIds.push(id);
 
+                const seatName = data.label || id;
                 const pill = document.createElement('span');
                 pill.className = 'ticket-seat-tag';
-                pill.innerHTML = 'Ghế ' + id + ' <span style="cursor: pointer; margin-left: 4px;" onclick="removeSeat(\'' + id + '\')">&times;</span>';
+                pill.innerHTML = 'Ghế ' + seatName + ' <span style="cursor: pointer; margin-left: 4px;" onclick="removeSeat(\'' + id + '\')">&times;</span>';
                 pillsContainer.appendChild(pill);
 
                 // Tạo thẻ hidden input cho từng phần tử selectedSeats (request.getParameterValues)

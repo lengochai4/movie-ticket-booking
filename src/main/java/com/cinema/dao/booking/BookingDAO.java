@@ -1,5 +1,7 @@
 package com.cinema.dao.booking;
 
+import com.cinema.model.entity.Combo;
+import com.cinema.model.entity.Payment;
 import com.cinema.model.entity.Seat;
 
 import java.math.BigDecimal;
@@ -269,6 +271,234 @@ public class BookingDAO {
             return false;
         } finally {
             close(ps, conn);
+        }
+    }
+
+    /**
+     * Lấy danh sách tất cả combo từ bảng "Combo".
+     */
+    public List<Combo> getAllCombos() {
+        List<Combo> combos = new ArrayList<>();
+        String sql = "SELECT \"comboID\", name, description, price FROM \"Combo\" ORDER BY \"comboID\"";
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = getConnection();
+            ps = conn.prepareStatement(sql);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                Combo combo = new Combo();
+                combo.setComboID(rs.getString("comboID"));
+                combo.setName(rs.getString("name"));
+                combo.setDescription(rs.getString("description"));
+                combo.setPrice(rs.getBigDecimal("price"));
+                combos.add(combo);
+            }
+        } catch (SQLException e) {
+            System.err.println("[BookingDAO] Lỗi getAllCombos: " + e.getMessage());
+        } finally {
+            close(rs, ps, conn);
+        }
+        return combos;
+    }
+
+    /**
+     * Dùng batch insert lưu vào "BookingCombo" (chỉ lưu các combo có quantity > 0).
+     */
+    public void saveBookingCombos(String bookingID, Map<String, Integer> comboQuantities) {
+        if (bookingID == null || comboQuantities == null || comboQuantities.isEmpty()) {
+            return;
+        }
+
+        String deleteSql = "DELETE FROM \"BookingCombo\" WHERE \"bookingID\" = ?";
+        String insertSql = "INSERT INTO \"BookingCombo\" (\"bookingComboID\", \"bookingID\", \"comboID\", \"quantity\") VALUES (?, ?, ?, ?)";
+
+        Connection conn = null;
+        PreparedStatement psDelete = null;
+        PreparedStatement psInsert = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false);
+
+            psDelete = conn.prepareStatement(deleteSql);
+            psDelete.setString(1, bookingID.trim());
+            psDelete.executeUpdate();
+
+            psInsert = conn.prepareStatement(insertSql);
+            boolean hasItems = false;
+            for (Map.Entry<String, Integer> entry : comboQuantities.entrySet()) {
+                String comboId = entry.getKey();
+                Integer qty = entry.getValue();
+                if (qty != null && qty > 0) {
+                    String bookingComboID = "BC_" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
+                    psInsert.setString(1, bookingComboID);
+                    psInsert.setString(2, bookingID.trim());
+                    psInsert.setString(3, comboId);
+                    psInsert.setInt(4, qty);
+                    psInsert.addBatch();
+                    hasItems = true;
+                }
+            }
+
+            if (hasItems) {
+                psInsert.executeBatch();
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+            }
+            System.err.println("[BookingDAO] Lỗi saveBookingCombos: " + e.getMessage());
+        } finally {
+            close(psDelete, psInsert, conn);
+        }
+    }
+
+    /**
+     * SQL tính tổng tiền vé + tiền combo trong PostgreSQL:
+     * - Tiền ghế: giá suất + phụ thu theo từng ghế
+     * - Tiền combo: số lượng * đơn giá combo
+     */
+    public BigDecimal calculateRawTotal(String bookingID) {
+        if (bookingID == null || bookingID.trim().isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        String seatSql =
+                "SELECT COALESCE(SUM(st.price + s.\"extraPrice\"), 0) AS \"seatTotal\" " +
+                "FROM \"Ticket\" t " +
+                "JOIN \"Showtime\" st ON t.\"showTimeID\" = st.\"showTimeID\" " +
+                "JOIN \"Seat\" s ON t.\"seatID\" = s.\"seatID\" AND s.\"roomID\" = st.\"roomID\" " +
+                "WHERE t.\"bookingID\" = ?";
+
+        String comboSql =
+                "SELECT COALESCE(SUM(c.price * bc.quantity), 0) AS \"comboTotal\" " +
+                "FROM \"BookingCombo\" bc " +
+                "JOIN \"Combo\" c ON bc.\"comboID\" = c.\"comboID\" " +
+                "WHERE bc.\"bookingID\" = ?";
+
+        Connection conn = null;
+        PreparedStatement psSeat = null;
+        PreparedStatement psCombo = null;
+        ResultSet rsSeat = null;
+        ResultSet rsCombo = null;
+        BigDecimal seatTotal = BigDecimal.ZERO;
+        BigDecimal comboTotal = BigDecimal.ZERO;
+
+        try {
+            conn = getConnection();
+
+            psSeat = conn.prepareStatement(seatSql);
+            psSeat.setString(1, bookingID.trim());
+            rsSeat = psSeat.executeQuery();
+            if (rsSeat.next()) {
+                BigDecimal val = rsSeat.getBigDecimal("seatTotal");
+                if (val != null) {
+                    seatTotal = val;
+                }
+            }
+
+            psCombo = conn.prepareStatement(comboSql);
+            psCombo.setString(1, bookingID.trim());
+            rsCombo = psCombo.executeQuery();
+            if (rsCombo.next()) {
+                BigDecimal val = rsCombo.getBigDecimal("comboTotal");
+                if (val != null) {
+                    comboTotal = val;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[BookingDAO] Lỗi calculateRawTotal: " + e.getMessage());
+        } finally {
+            close(rsSeat, psSeat, rsCombo, psCombo, conn);
+        }
+
+        return seatTotal.add(comboTotal);
+    }
+
+    /**
+     * Transaction thanh toán:
+     * 1. Insert vào "Payment".
+     * 2. Update "Booking": "paymentID" = ?, "bookingStatus" = 'PAID' WHERE "bookingID" = ? AND "expiresAt" > CURRENT_TIMESTAMP AND "bookingStatus" = 'PENDING'.
+     * 3. Nếu số dòng update == 0 (quá hạn hoặc không hợp lệ) -> rollback, return false.
+     * 4. Update "Ticket" set "ticketStatus" = 'AVAILABLE' WHERE "bookingID" = ?.
+     * 5. Commit và return true.
+     */
+    public boolean completePayment(String bookingID, Payment payment) {
+        if (bookingID == null || payment == null) {
+            return false;
+        }
+
+        String insertPaymentSql =
+                "INSERT INTO \"Payment\" (\"paymentID\", \"type\", \"amount\", \"paymentDate\") " +
+                "VALUES (?, ?, ?, ?)";
+
+        String updateBookingSql =
+                "UPDATE \"Booking\" SET \"paymentID\" = ?, \"bookingStatus\" = 'PAID' " +
+                "WHERE \"bookingID\" = ? AND \"expiresAt\" > CURRENT_TIMESTAMP AND \"bookingStatus\" = 'PENDING'";
+
+        String updateTicketSql =
+                "UPDATE \"Ticket\" SET \"ticketStatus\" = 'AVAILABLE' WHERE \"bookingID\" = ?";
+
+        Connection conn = null;
+        PreparedStatement psPayment = null;
+        PreparedStatement psBooking = null;
+        PreparedStatement psTicket = null;
+
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // Bắt đầu Transaction
+
+            // 1. Insert vào "Payment"
+            psPayment = conn.prepareStatement(insertPaymentSql);
+            psPayment.setString(1, payment.getPaymentID());
+            psPayment.setString(2, payment.getType());
+            psPayment.setBigDecimal(3, payment.getAmount() != null ? payment.getAmount() : BigDecimal.ZERO);
+            Timestamp paymentTimestamp = payment.getPaymentDate() != null
+                    ? Timestamp.valueOf(payment.getPaymentDate())
+                    : new Timestamp(System.currentTimeMillis());
+            psPayment.setTimestamp(4, paymentTimestamp);
+            psPayment.executeUpdate();
+
+            // 2. Update "Booking": "paymentID" = ?, "bookingStatus" = 'PAID'
+            // WHERE "bookingID" = ? AND "expiresAt" > CURRENT_TIMESTAMP AND "bookingStatus" = 'PENDING'
+            psBooking = conn.prepareStatement(updateBookingSql);
+            psBooking.setString(1, payment.getPaymentID());
+            psBooking.setString(2, bookingID.trim());
+            int updatedRows = psBooking.executeUpdate();
+
+            // 3. Nếu số dòng update == 0 (quá hạn hoặc không hợp lệ) -> rollback, return false
+            if (updatedRows == 0) {
+                conn.rollback();
+                System.err.println("[BookingDAO] completePayment: Đơn hàng " + bookingID + " đã quá hạn hoặc không ở trạng thái PENDING.");
+                return false;
+            }
+
+            // 4. Update "Ticket" set "ticketStatus" = 'AVAILABLE' WHERE "bookingID" = ?
+            psTicket = conn.prepareStatement(updateTicketSql);
+            psTicket.setString(1, bookingID.trim());
+            psTicket.executeUpdate();
+
+            // 5. Commit và return true
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+            }
+            System.err.println("[BookingDAO] Lỗi Transaction completePayment: " + e.getMessage());
+            return false;
+        } finally {
+            close(psPayment, psBooking, psTicket, conn);
         }
     }
 

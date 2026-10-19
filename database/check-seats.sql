@@ -12,46 +12,51 @@
 
 -- CÁCH 1: Xem tất cả các ghế ĐANG ĐƯỢC GIỮ CHỖ hoặc ĐÃ MUA gần đây nhất
 SELECT 
-    t.seatID AS "Mã Ghế",
+    b.bookingID AS "Mã Đơn",
+    CONCAT(s."row", s."column") AS "Tên Ghế",
+    s.type AS "Loại Ghế",
+    t.seatID AS "Mã Ghế (UUID)",
     t.showTimeID AS "Suất Chiếu",
     b.bookingStatus AS "Trạng Thái Đơn",
     CASE 
-        WHEN b.bookingStatus = 'PAID' THEN 'ĐÃ BÁN (PAID)'
-        WHEN b.bookingStatus = 'PENDING' AND b.expiresAt > CURRENT_TIMESTAMP THEN 'ĐANG GIỮ CHỖ (PENDING)'
-        WHEN b.bookingStatus = 'PENDING' AND b.expiresAt <= CURRENT_TIMESTAMP THEN 'HẾT HẠN GIỮ CHỖ (Chờ nhả)'
-        WHEN b.bookingStatus = 'CANCELLED' THEN 'ĐÃ HỦY (CANCELLED)'
+        WHEN b.bookingStatus = 'PAID' THEN '🟢 ĐÃ BÁN (PAID)'
+        WHEN b.bookingStatus = 'PENDING' AND b.expiresAt > CURRENT_TIMESTAMP THEN '🟡 ĐANG GIỮ CHỖ (PENDING)'
+        WHEN b.bookingStatus = 'PENDING' AND b.expiresAt <= CURRENT_TIMESTAMP THEN '🔴 HẾT HẠN GIỮ CHỖ (Chờ nhả)'
+        WHEN b.bookingStatus = 'CANCELLED' THEN '⚪ ĐÃ HỦY (CANCELLED)'
         ELSE b.bookingStatus
     END AS "Tình Trạng Ghế",
     ROUND(CAST(EXTRACT(EPOCH FROM (b.expiresAt - CURRENT_TIMESTAMP)) / 60 AS NUMERIC), 1) AS "Phút Còn Lại",
-    b.bookingID AS "Mã Đơn",
     u.fullName AS "Người Đặt",
-    b.createdAt AS "Thời Điểm Tạo",
-    b.expiresAt AS "Hạn Giữ Chỗ"
+    b.createdAt AS "Thời Điểm Tạo"
 FROM Ticket t
 JOIN Booking b ON t.bookingID = b.bookingID
+LEFT JOIN Seat s ON t.seatID = s.seatID
 LEFT JOIN "User" u ON b.userID = u.userID
 ORDER BY b.createdAt DESC;
 
 
--- CÁCH 2: Xem toàn bộ 20 ghế của Suất chiếu 'ST_01' (Xem ghế nào TRỐNG, ghế nào BỊ KHÓA)
+-- CÁCH 2: Xem toàn bộ ghế của Suất chiếu (Xem ghế nào TRỐNG, ghế nào BỊ KHÓA)
+-- Gợi ý: Thay mã suất chiếu bên dưới hoặc để mặc định kiểm tra suất chiếu mới nhất
 SELECT 
-    s.seatID AS "Ghế",
+    CONCAT(s."row", s."column") AS "Tên Ghế",
     s."row" AS "Hàng",
     s."column" AS "Cột",
     s.type AS "Loại Ghế",
     COALESCE(
         CASE 
-            WHEN b.bookingStatus = 'PAID' THEN 'ĐÃ BÁN'
+            WHEN b.bookingStatus = 'PAID' THEN '🟢 ĐÃ BÁN (PAID)'
             WHEN b.bookingStatus = 'PENDING' AND b.expiresAt > CURRENT_TIMESTAMP 
-                THEN 'ĐANG GIỮ (' || ROUND(CAST(EXTRACT(EPOCH FROM (b.expiresAt - CURRENT_TIMESTAMP)) / 60 AS NUMERIC), 1) || ' phút)'
+                THEN '🟡 ĐANG GIỮ (' || ROUND(CAST(EXTRACT(EPOCH FROM (b.expiresAt - CURRENT_TIMESTAMP)) / 60 AS NUMERIC), 1) || ' phút)'
             ELSE NULL 
         END, 
-        'CÒN TRỐNG'
+        '⚪ CÒN TRỐNG'
     ) AS "Trạng Thái Ghế",
-    b.bookingID AS "Mã Đơn Đặt"
+    b.bookingID AS "Mã Đơn Đặt",
+    s.seatID AS "UUID Ghế"
 FROM Seat s
-LEFT JOIN Ticket t ON s.seatID = t.seatID AND t.showTimeID = 'ST_01'
+JOIN Showtime st ON s.roomID = st.roomID
+LEFT JOIN Ticket t ON s.seatID = t.seatID AND t.showTimeID = st.showTimeID
 LEFT JOIN Booking b ON t.bookingID = b.bookingID 
     AND (b.bookingStatus = 'PAID' OR (b.bookingStatus = 'PENDING' AND b.expiresAt > CURRENT_TIMESTAMP))
-WHERE s.roomID = 'ROOM_01'
+WHERE st.showTimeID = (SELECT showTimeID FROM Ticket ORDER BY ticketID DESC LIMIT 1)
 ORDER BY s."row", CAST(s."column" AS INTEGER);

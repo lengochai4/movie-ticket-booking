@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@WebServlet(urlPatterns = {"/booking/seats", "/booking/combo", "/booking/checkout", "/booking/complete"})
+@WebServlet(urlPatterns = {"/booking-mock/*"})
 public class BookingFlowServlet extends HttpServlet {
 
     private final BookingService bookingService = new BookingService();
