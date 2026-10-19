@@ -12,7 +12,7 @@
               maxTotal="16"
               maxIdle="8"
               minIdle="2"
-              maxWaitMillis="5000"
+              maxWaitMillis="10000"
               validationQuery="SELECT 1"
               testOnBorrow="true"/>
 </Context>
