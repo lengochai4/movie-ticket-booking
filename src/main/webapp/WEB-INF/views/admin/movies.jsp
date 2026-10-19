@@ -82,6 +82,23 @@
             </div>
         </section>
 
+        <%---- ================= THÔNG BÁO HỆ THỐNG (flash message từ session) ================= ----%>
+        <c:set var="msgError" value="${not empty errorMessage ? errorMessage : sessionScope.errorMessage}" />
+        <c:set var="msgSuccess" value="${not empty successMessage ? successMessage : sessionScope.successMessage}" />
+
+        <c:if test="${not empty msgError}">
+            <div style="background: rgba(120, 0, 0, 0.4); border: 1px solid #c92a2a; color: #ff8787; padding: 12px 18px; border-radius: 8px; font-size: 14px;">
+                <span>⚠️ <c:out value="${msgError}"/></span>
+            </div>
+            <c:remove var="errorMessage" scope="session" />
+        </c:if>
+        <c:if test="${not empty msgSuccess}">
+            <div style="background: rgba(43, 138, 62, 0.25); border: 1px solid #2b8a3e; color: #69db7c; padding: 12px 18px; border-radius: 8px; font-size: 14px;">
+                <span>✅ <c:out value="${msgSuccess}"/></span>
+            </div>
+            <c:remove var="successMessage" scope="session" />
+        </c:if>
+
         <%---- ================= 3. BỘ LỌC & TÌM KIẾM PHIM ================= ----%>
         <section class="filter-card">
             <form action="${pageContext.request.contextPath}/admin/movies" method="GET" class="filter-form">
@@ -143,18 +160,18 @@
                                     <tr>
                                         <%---- Poster Thumbnail ----%>
                                         <td style="text-align: center;">
-                                            <img src="${m.posterURL}" alt="${m.title}" 
+                                            <img src="<c:out value='${m.posterURL}'/>" alt="<c:out value='${m.title}'/>" 
                                                  style="width: 50px; height: 70px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
                                         </td>
                                         <%---- Tên phim & Thời lượng ----%>
                                         <td>
-                                            <div style="font-weight: 700; color: #ffffff; font-size: 15px;">${m.title}</div>
+                                            <div style="font-weight: 700; color: #ffffff; font-size: 15px;"><c:out value='${m.title}'/></div>
                                             <span style="font-size: 12px; color: #94a3b8;">⏱️ ${m.duration} phút</span>
                                         </td>
                                         <%---- Đạo diễn ----%>
-                                        <td>${m.director}</td>
+                                        <td><c:out value='${m.director}'/></td>
                                         <%---- Thể loại ----%>
-                                        <td><span style="color: #cbd5e1; font-size: 13px;">${m.genre}</span></td>
+                                        <td><span style="color: #cbd5e1; font-size: 13px;"><c:out value='${m.genre}'/></span></td>
                                         <%---- Ngày khởi chiếu ----%>
                                         <td><span style="color: #94a3b8; font-size: 13px;">${m.releaseDate}</span></td>
                                         <%---- Phân loại độ tuổi ----%>
@@ -166,11 +183,17 @@
                                         <%---- Nút hành động ----%>
                                         <td style="text-align: right;">
                                             <button type="button" class="btn-action edit" title="Chỉnh sửa phim"
-                                                    onclick="openEditMovieModal('${m.movieID}', '${m.title}', '${m.director}', '${m.genre}', '${m.duration}', '${m.releaseDate}', '${m.ageRating}', '${m.posterURL}', '${m.description}')">
+                                                    data-id="${m.movieID}" data-title="<c:out value='${m.title}'/>"
+                                                    data-director="<c:out value='${m.director}'/>" data-genre="<c:out value='${m.genre}'/>"
+                                                    data-duration="${m.duration}" data-release="${m.releaseDate}" data-age="<c:out value='${m.ageRating}'/>"
+                                                    data-poster="<c:out value='${m.posterURL}'/>" data-trailer="<c:out value='${m.trailerURL}'/>"
+                                                    data-desc="<c:out value='${m.description}'/>"
+                                                    onclick="const d = this.dataset; openEditMovieModal(d.id, d.title, d.director, d.genre, d.duration, d.release, d.age, d.poster, d.desc, d.trailer)">
                                                 ✏️
                                             </button>
                                             <button type="button" class="btn-action lock" title="Xóa phim"
-                                                    onclick="openDeleteMovieModal('${m.movieID}', '${m.title}')">
+                                                    data-id="${m.movieID}" data-title="<c:out value='${m.title}'/>"
+                                                    onclick="openDeleteMovieModal(this.dataset.id, this.dataset.title)">
                                                 🗑️
                                             </button>
                                         </td>
@@ -253,8 +276,8 @@
 
                 <%---- Ngày khởi chiếu ----%>
                 <div style="grid-column: 1 / -1;">
-                    <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Ngày khởi chiếu:</label>
-                    <input type="date" name="releaseDate" id="inputReleaseDate"
+                    <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Ngày khởi chiếu (*):</label>
+                    <input type="date" name="releaseDate" id="inputReleaseDate" required
                            style="width: 100%; padding: 10px 12px; border-radius: 6px; background: #0f1217; border: 1px solid rgba(255,255,255,0.15); color: #fff; box-sizing: border-box;">
                 </div>
 
@@ -273,6 +296,13 @@
                         <img id="posterPreviewImg" src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=200&auto=format&fit=crop" 
                              alt="Preview" style="width: 60px; height: 85px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(252,202,70,0.4); flex-shrink: 0;">
                     </div>
+                </div>
+
+                <%---- Link trailer Youtube ----%>
+                <div style="grid-column: 1 / -1;">
+                    <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Link trailer (Youtube embed):</label>
+                    <input type="text" name="trailerURL" id="inputTrailerURL" placeholder="https://www.youtube.com/embed/..."
+                           style="width: 100%; padding: 10px 12px; border-radius: 6px; background: #0f1217; border: 1px solid rgba(255,255,255,0.15); color: #fff; box-sizing: border-box;">
                 </div>
 
                 <%---- Mô tả nội dung phim ----%>
@@ -348,12 +378,13 @@
         document.getElementById('inputAgeRating').value = 'T16';
         document.getElementById('inputReleaseDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('inputPosterURL').value = '';
+        document.getElementById('inputTrailerURL').value = '';
         document.getElementById('inputDescription').value = '';
         document.getElementById('posterPreviewImg').src = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=200&auto=format&fit=crop';
         document.getElementById('movieModal').style.display = 'flex';
     }
 
-    function openEditMovieModal(id, title, director, genre, duration, releaseDate, ageRating, posterURL, desc) {
+    function openEditMovieModal(id, title, director, genre, duration, releaseDate, ageRating, posterURL, desc, trailerURL) {
         document.getElementById('modalMovieHeading').textContent = '✏️ Chỉnh Sửa Thông Tin Phim';
         document.getElementById('inputMovieID').value = id;
         document.getElementById('inputTitle').value = title;
@@ -363,6 +394,7 @@
         document.getElementById('inputAgeRating').value = ageRating;
         document.getElementById('inputReleaseDate').value = releaseDate;
         document.getElementById('inputPosterURL').value = posterURL;
+        document.getElementById('inputTrailerURL').value = trailerURL || '';
         document.getElementById('inputDescription').value = desc;
         updatePosterPreview(posterURL);
         document.getElementById('movieModal').style.display = 'flex';

@@ -31,6 +31,7 @@
                 <h1 class="ticket-title-admit">ADMIT ONE</h1>
                 <div class="ticket-subtitle-theater">
                     ${not empty order.cinemaName ? order.cinemaName : 'Cinetik'}
+                    <c:if test="${not empty order.cinemaAddress}"><br>${order.cinemaAddress}</c:if>
                 </div>
             </div>
 
@@ -69,10 +70,13 @@
                 <span class="ticket-field-label">GHẾ ĐÃ CHỌN / SEATS</span>
                 <div class="ticket-seats-list">
                     <c:choose>
-                        <c:when test="${not empty order.seatPills}">
+                        <c:when test="${ticketBound}">
                             <c:forEach items="${order.seatPills}" var="seat">
                                 <span class="ticket-seat-tag">${seat}</span>
                             </c:forEach>
+                            <c:if test="${empty order.seatPills}">
+                                <span class="ticket-seat-tag">Chưa có ghế</span>
+                            </c:if>
                         </c:when>
                         <c:otherwise>
                             <span class="ticket-seat-tag">VIP E5</span>
@@ -88,6 +92,19 @@
                     <div class="ticket-pricing-row">
                         <span>Bắp nước kèm theo:</span>
                         <strong>${not empty order.combos ? order.combos : 'Combo Solo x 1, Bắp Rang Bơ x 1'}</strong>
+                    </div>
+                </div>
+            </c:if>
+
+            <c:if test="${ticketBound}">
+                <div class="ticket-pricing-list">
+                    <div class="ticket-pricing-row">
+                        <span>Điểm thưởng của vé:</span>
+                        <strong>+${order.pointsEarned} điểm</strong>
+                    </div>
+                    <div class="ticket-pricing-row">
+                        <span>Điểm thưởng thành viên:</span>
+                        <strong>${loyaltyPoints} điểm</strong>
                     </div>
                 </div>
             </c:if>
@@ -118,7 +135,7 @@
 
                 <%---- Khung trắng giữ nguyên mã QR sắc nét quét được thật ----%>
                 <div class="ticket-qr-card">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=190x190&data=${not empty order.orderCode ? order.orderCode : 'CNK-2026-88921'}&color=110e0c" 
+                    <img src="${not empty order.qrImageUrl ? order.qrImageUrl : 'https://api.qrserver.com/v1/create-qr-code/?size=190x190&data=CNK-2026-88921&color=110e0c'}"
                          alt="Mã QR Soát Vé ${not empty order.orderCode ? order.orderCode : 'CNK-2026-88921'}">
                 </div>
 

@@ -122,16 +122,17 @@ public class CinemaShowtimeSeeder {
                         for (int tIdx = (rIdx % 2); tIdx < timeSlots.length; tIdx += 2) {
                             Movie movie = movies.get((movieIndex + rIdx + tIdx) % movies.size());
                             LocalTime startTime = timeSlots[tIdx];
-                            LocalTime endTime = startTime.plusMinutes(movie.getDuration() > 0 ? movie.getDuration() + 15 : 120);
 
+                            // Cộng trên LocalDateTime để suất chiếu khuya kết thúc sang ngày hôm sau đúng ngày
                             LocalDateTime startDateTime = showDate.atTime(startTime);
-                            LocalDateTime endDateTime = showDate.atTime(endTime);
+                            LocalDateTime endDateTime = startDateTime.plusMinutes(movie.getDuration() > 0 ? movie.getDuration() + 15 : 120);
 
                             Showtime st = new Showtime();
                             st.setMovie(movie);
                             st.setRoom(room);
                             st.setStartTime(startDateTime);
                             st.setEndTime(endDateTime);
+                            st.setPrice(90000.0);
 
                             em.persist(st);
                             showtimeCreated++;

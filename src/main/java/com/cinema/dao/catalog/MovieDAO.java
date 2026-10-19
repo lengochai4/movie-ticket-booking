@@ -5,6 +5,8 @@ import com.cinema.util.JPAUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.TypedQuery;
+import org.eclipse.persistence.config.HintValues;
+import org.eclipse.persistence.config.QueryHints;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -214,8 +216,11 @@ public class MovieDAO {
         EntityManager em = JPAUtil.getEntityManager();
         try {
             String jpql = "SELECT m FROM Movie m LEFT JOIN FETCH m.showtimes s LEFT JOIN FETCH s.room r LEFT JOIN FETCH r.cinema WHERE m.movieID = :id";
+            // Đọc lại từ DB thay vì bản trong cache dùng chung của EclipseLink: suất chiếu thêm sau
+            // không tự cập nhật danh sách showtimes của phim đã cache (trang chi tiết phim)
             return em.createQuery(jpql, Movie.class)
                     .setParameter("id", id)
+                    .setHint(QueryHints.REFRESH, HintValues.TRUE)
                     .getSingleResult();
         } catch (jakarta.persistence.NoResultException e) {
             // Thử query đơn nếu phim chưa có suất chiếu

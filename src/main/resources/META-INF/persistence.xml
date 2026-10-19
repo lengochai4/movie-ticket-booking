@@ -9,6 +9,7 @@
         <class>com.cinema.entity.Room</class>
         <class>com.cinema.entity.Showtime</class>
         <class>com.cinema.entity.Seat</class>
+        <class>com.cinema.entity.Combo</class>
         <exclude-unlisted-classes>false</exclude-unlisted-classes>
 
         <properties>
@@ -23,6 +24,12 @@
             <!-- In câu lệnh SQL ra console để dễ debug -->
             <property name="eclipselink.logging.level.sql" value="FINE"/>
             <property name="eclipselink.logging.parameters" value="true"/>
+
+            <!-- Connection pool của EclipseLink khi không có DataSource JNDI -->
+            <property name="eclipselink.jdbc.connections.initial" value="2"/>
+            <property name="eclipselink.jdbc.connections.min" value="2"/>
+            <property name="eclipselink.jdbc.connections.max" value="16"/>
+            <property name="eclipselink.jdbc.connections.wait-timeout" value="5000"/>
         </properties>
     </persistence-unit>
 </persistence>

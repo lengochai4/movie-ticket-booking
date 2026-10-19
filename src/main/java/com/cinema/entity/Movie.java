@@ -30,6 +30,10 @@ public class Movie {
     }
 
     private String posterURL;
+
+    @Column(length = 500)
+    private String trailerURL;      // Link nhúng trailer Youtube
+
     private String director;
     private int duration;
     private LocalDate releaseDate;
@@ -61,6 +65,8 @@ public class Movie {
     public void setPosterURL(String posterURL) {this.posterURL = posterURL;}
     public String getPosterUrl() {return posterURL;}
     public void setPosterUrl(String posterUrl) {this.posterURL = posterUrl;}
+    public String getTrailerURL() {return trailerURL;}
+    public void setTrailerURL(String trailerURL) {this.trailerURL = trailerURL;}
     public String getDirector() {return director;}
     public void setDirector(String director) {this.director = director;}
     public int getDuration() {return duration;}
