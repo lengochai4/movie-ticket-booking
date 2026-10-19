@@ -1,8 +1,16 @@
 package com.cinema.dao.admin;
 
-import com.cinema.util.JPAUtil;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
+import com.cinema.dto.CinemaRevenueDTO;
+import com.cinema.dto.DashboardSummaryDTO;
+import com.cinema.dto.MovieRevenueDTO;
+import com.cinema.dto.RevenueRecordDTO;
+import com.cinema.dto.SeatFillDTO;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,8 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Truy vấn thống kê CHỈ ĐỌC trên bảng bookings / tickets (do Hải, Như quản lý).
- * Dùng native query để không phụ thuộc entity Booking của module khác.
+ * Truy vấn thống kê CHỈ ĐỌC trên bảng bookings / tickets (do Hải, Như quản lý),
+ * JDBC: ConnectionPool + PreparedStatement.
  * Chỉ tính các đơn đã thanh toán (status = PAID), mốc thời gian theo bookings.created_at.
  */
 public class StatisticsDAO {
@@ -25,163 +33,244 @@ public class StatisticsDAO {
     private static final String TICKET_REVENUE_OF_BOOKING =
             "COALESCE(b.ticket_price, COALESCE(b.total_price, 0) - COALESCE(b.combo_price, 0))";
 
-    /**
-     * Tổng hợp trong khoảng [from, to).
-     * @return {tổng doanh thu, doanh thu vé, doanh thu combo, số đơn, số vé}
-     */
-    public double[] getSummary(String paidStatus, LocalDateTime from, LocalDateTime to) {
-        EntityManager em = JPAUtil.getEntityManager();
+    // Tổng hợp doanh thu trong khoảng [from, to)
+    public DashboardSummaryDTO getSummary(String paidStatus, LocalDateTime from, LocalDateTime to) {
+        String sql = "SELECT COALESCE(SUM(b.total_price), 0), COALESCE(SUM(" + TICKET_REVENUE_OF_BOOKING + "), 0), "
+                + "COALESCE(SUM(b.combo_price), 0), COUNT(*), COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) "
+                + "FROM bookings b WHERE b.status = ? AND b.created_at >= ? AND b.created_at < ?";
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            String sql = "SELECT COALESCE(SUM(b.total_price), 0), COALESCE(SUM(" + TICKET_REVENUE_OF_BOOKING + "), 0), "
-                    + "COALESCE(SUM(b.combo_price), 0), COUNT(*), COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) "
-                    + "FROM bookings b WHERE b.status = ?1 AND b.created_at >= ?2 AND b.created_at < ?3";
-            Object[] row = (Object[]) bind(em.createNativeQuery(sql), paidStatus, from, to).getSingleResult();
-            return new double[] { num(row[0]), num(row[1]), num(row[2]), num(row[3]), num(row[4]) };
-        } catch (Exception e) {
+            connection = pool.getConnection();
+            ps = connection.prepareStatement(sql);
+            bindPeriod(ps, paidStatus, from, to);
+            rs = ps.executeQuery();
+            DashboardSummaryDTO summary = new DashboardSummaryDTO();
+            if (rs.next()) {
+                summary.setTotalRevenue(rs.getDouble(1));
+                summary.setTicketRevenue(rs.getDouble(2));
+                summary.setComboRevenue(rs.getDouble(3));
+                summary.setBookingCount(rs.getLong(4));
+                summary.setTicketCount(rs.getLong(5));
+            }
+            return summary;
+        } catch (SQLException e) {
             System.err.println("[StatisticsDAO] Lỗi getSummary: " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
-            em.close();
+            close(rs, ps, connection, pool);
         }
     }
 
-    // Danh sách (thời điểm đặt, tổng tiền) của các đơn đã thanh toán, để Servlet chia theo giờ/ngày/tháng
-    public List<Object[]> getPaidBookingTimes(String paidStatus, LocalDateTime from, LocalDateTime to) {
-        EntityManager em = JPAUtil.getEntityManager();
+    // Thời điểm đặt và tổng tiền của các đơn đã thanh toán, để Servlet chia theo giờ/ngày/tháng
+    public List<RevenueRecordDTO> getPaidBookingRecords(String paidStatus, LocalDateTime from, LocalDateTime to) {
+        String sql = "SELECT b.created_at, COALESCE(b.total_price, 0) FROM bookings b "
+                + "WHERE b.status = ? AND b.created_at >= ? AND b.created_at < ? ORDER BY b.created_at";
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            String sql = "SELECT b.created_at, COALESCE(b.total_price, 0) FROM bookings b "
-                    + "WHERE b.status = ?1 AND b.created_at >= ?2 AND b.created_at < ?3 ORDER BY b.created_at";
-            return castRows(bind(em.createNativeQuery(sql), paidStatus, from, to).getResultList());
-        } catch (Exception e) {
-            System.err.println("[StatisticsDAO] Lỗi getPaidBookingTimes: " + e.getMessage());
+            connection = pool.getConnection();
+            ps = connection.prepareStatement(sql);
+            bindPeriod(ps, paidStatus, from, to);
+            rs = ps.executeQuery();
+            List<RevenueRecordDTO> list = new ArrayList<>();
+            while (rs.next()) {
+                Timestamp createdAt = rs.getTimestamp(1);
+                if (createdAt == null) continue;
+                RevenueRecordDTO r = new RevenueRecordDTO();
+                r.setCreatedAt(createdAt.toLocalDateTime());
+                r.setTotalPrice(rs.getDouble(2));
+                list.add(r);
+            }
+            return list;
+        } catch (SQLException e) {
+            System.err.println("[StatisticsDAO] Lỗi getPaidBookingRecords: " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
-            em.close();
+            close(rs, ps, connection, pool);
         }
     }
 
-    // Doanh thu theo cụm rạp: {tên rạp, doanh thu}
-    public List<Object[]> getRevenueByCinema(String paidStatus, LocalDateTime from, LocalDateTime to) {
-        EntityManager em = JPAUtil.getEntityManager();
+    // Doanh thu theo cụm rạp
+    public List<CinemaRevenueDTO> getRevenueByCinema(String paidStatus, LocalDateTime from, LocalDateTime to) {
+        String sql = "SELECT COALESCE(c.name, b.cinema_name, 'Khác'), COALESCE(SUM(b.total_price), 0) "
+                + "FROM bookings b "
+                + "LEFT JOIN showtimes s ON s.showtimeid = b.showtime_id "
+                + "LEFT JOIN rooms r ON r.roomid = s.room_id "
+                + "LEFT JOIN cinema c ON c.cinemaid = r.cinema_id "
+                + "WHERE b.status = ? AND b.created_at >= ? AND b.created_at < ? "
+                + "GROUP BY 1 ORDER BY 2 DESC";
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            String sql = "SELECT COALESCE(c.name, b.cinema_name, 'Khác'), COALESCE(SUM(b.total_price), 0) "
-                    + "FROM bookings b "
-                    + "LEFT JOIN showtimes s ON s.showtimeid = b.showtime_id "
-                    + "LEFT JOIN rooms r ON r.roomid = s.room_id "
-                    + "LEFT JOIN cinema c ON c.cinemaid = r.cinema_id "
-                    + "WHERE b.status = ?1 AND b.created_at >= ?2 AND b.created_at < ?3 "
-                    + "GROUP BY 1 ORDER BY 2 DESC";
-            return castRows(bind(em.createNativeQuery(sql), paidStatus, from, to).getResultList());
-        } catch (Exception e) {
+            connection = pool.getConnection();
+            ps = connection.prepareStatement(sql);
+            bindPeriod(ps, paidStatus, from, to);
+            rs = ps.executeQuery();
+            List<CinemaRevenueDTO> list = new ArrayList<>();
+            while (rs.next()) {
+                CinemaRevenueDTO c = new CinemaRevenueDTO();
+                c.setCinemaName(rs.getString(1));
+                c.setRevenue(rs.getDouble(2));
+                list.add(c);
+            }
+            return list;
+        } catch (SQLException e) {
             System.err.println("[StatisticsDAO] Lỗi getRevenueByCinema: " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
-            em.close();
+            close(rs, ps, connection, pool);
         }
     }
 
-    // Top phim theo doanh thu: {movieID, title, genre, duration, posterURL, số suất có bán, số vé, doanh thu}
-    public List<Object[]> getTopMovies(String paidStatus, LocalDateTime from, LocalDateTime to, int limit) {
-        EntityManager em = JPAUtil.getEntityManager();
+    // Top phim theo doanh thu (phần trăm đóng góp do Servlet tính)
+    public List<MovieRevenueDTO> getTopMovies(String paidStatus, LocalDateTime from, LocalDateTime to, int limit) {
+        String sql = "SELECT m.movieid, m.title, m.genre, m.duration, m.posterurl, "
+                + "COUNT(DISTINCT b.showtime_id), COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0), COALESCE(SUM(b.total_price), 0) "
+                + "FROM bookings b "
+                + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
+                + "JOIN movies m ON m.movieid = s.movie_id "
+                + "WHERE b.status = ? AND b.created_at >= ? AND b.created_at < ? "
+                + "GROUP BY m.movieid, m.title, m.genre, m.duration, m.posterurl "
+                + "ORDER BY 8 DESC LIMIT ?";
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            String sql = "SELECT m.movieid, m.title, m.genre, m.duration, m.posterurl, "
-                    + "COUNT(DISTINCT b.showtime_id), COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0), COALESCE(SUM(b.total_price), 0) "
-                    + "FROM bookings b "
-                    + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
-                    + "JOIN movies m ON m.movieid = s.movie_id "
-                    + "WHERE b.status = ?1 AND b.created_at >= ?2 AND b.created_at < ?3 "
-                    + "GROUP BY m.movieid, m.title, m.genre, m.duration, m.posterurl "
-                    + "ORDER BY 8 DESC";
-            Query q = bind(em.createNativeQuery(sql), paidStatus, from, to);
-            q.setMaxResults(limit);
-            return castRows(q.getResultList());
-        } catch (Exception e) {
+            connection = pool.getConnection();
+            ps = connection.prepareStatement(sql);
+            bindPeriod(ps, paidStatus, from, to);
+            ps.setInt(4, limit);
+            rs = ps.executeQuery();
+            List<MovieRevenueDTO> list = new ArrayList<>();
+            while (rs.next()) {
+                MovieRevenueDTO m = new MovieRevenueDTO();
+                m.setMovieID(rs.getString(1));
+                m.setTitle(rs.getString(2));
+                m.setGenre(rs.getString(3) != null ? rs.getString(3) : "Điện ảnh");
+                m.setDuration(rs.getInt(4));
+                m.setPosterUrl(rs.getString(5));
+                m.setShowtimesCount(rs.getLong(6));
+                m.setTicketsSold(rs.getLong(7));
+                m.setRevenue(Math.round(rs.getDouble(8)));
+                list.add(m);
+            }
+            return list;
+        } catch (SQLException e) {
             System.err.println("[StatisticsDAO] Lỗi getTopMovies: " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
-            em.close();
+            close(rs, ps, connection, pool);
         }
     }
 
-    /**
-     * Tỷ lệ lấp đầy của các suất chiếu bắt đầu trong [from, to).
-     * @return {số vé đã bán, tổng số ghế}
-     */
-    public double[] getSeatFill(String paidStatus, LocalDateTime from, LocalDateTime to) {
-        EntityManager em = JPAUtil.getEntityManager();
+    // Số vé đã bán / tổng số ghế của các suất chiếu bắt đầu trong [from, to)
+    public SeatFillDTO getSeatFill(String paidStatus, LocalDateTime from, LocalDateTime to) {
+        String soldSql = "SELECT COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) FROM bookings b "
+                + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
+                + "WHERE b.status = ? AND s.starttime >= ? AND s.starttime < ?";
+        String capacitySql = "SELECT COALESCE(SUM(r.capacity), 0) FROM showtimes s "
+                + "JOIN rooms r ON r.roomid = s.room_id "
+                + "WHERE s.starttime >= ? AND s.starttime < ?";
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = null;
+        PreparedStatement psSold = null;
+        PreparedStatement psCapacity = null;
+        ResultSet rsSold = null;
+        ResultSet rsCapacity = null;
         try {
-            String soldSql = "SELECT COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) FROM bookings b "
-                    + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
-                    + "WHERE b.status = ?1 AND s.starttime >= ?2 AND s.starttime < ?3";
-            String capacitySql = "SELECT COALESCE(SUM(r.capacity), 0) FROM showtimes s "
-                    + "JOIN rooms r ON r.roomid = s.room_id "
-                    + "WHERE s.starttime >= ?1 AND s.starttime < ?2";
-            Object sold = bind(em.createNativeQuery(soldSql), paidStatus, from, to).getSingleResult();
-            Object capacity = em.createNativeQuery(capacitySql)
-                    .setParameter(1, from)
-                    .setParameter(2, to)
-                    .getSingleResult();
-            return new double[] { num(sold), num(capacity) };
-        } catch (Exception e) {
+            connection = pool.getConnection();
+            SeatFillDTO fill = new SeatFillDTO();
+
+            psSold = connection.prepareStatement(soldSql);
+            bindPeriod(psSold, paidStatus, from, to);
+            rsSold = psSold.executeQuery();
+            if (rsSold.next()) fill.setSoldTickets(rsSold.getLong(1));
+
+            psCapacity = connection.prepareStatement(capacitySql);
+            psCapacity.setTimestamp(1, Timestamp.valueOf(from));
+            psCapacity.setTimestamp(2, Timestamp.valueOf(to));
+            rsCapacity = psCapacity.executeQuery();
+            if (rsCapacity.next()) fill.setTotalSeats(rsCapacity.getLong(1));
+
+            return fill;
+        } catch (SQLException e) {
             System.err.println("[StatisticsDAO] Lỗi getSeatFill: " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
-            em.close();
+            DBUtil.closeResultSet(rsCapacity);
+            DBUtil.closePreparedStatement(psCapacity);
+            close(rsSold, psSold, connection, pool);
         }
     }
 
     // Số vé đã bán (đơn PAID) của từng suất chiếu bắt đầu trong [from, to): showtimeID -> số vé
     public Map<String, Long> getSoldTicketsByShowtime(String paidStatus, LocalDateTime from, LocalDateTime to) {
-        EntityManager em = JPAUtil.getEntityManager();
+        String sql = "SELECT b.showtime_id, COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) FROM bookings b "
+                + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
+                + "WHERE b.status = ? AND s.starttime >= ? AND s.starttime < ? "
+                + "GROUP BY b.showtime_id";
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            String sql = "SELECT b.showtime_id, COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) FROM bookings b "
-                    + "JOIN showtimes s ON s.showtimeid = b.showtime_id "
-                    + "WHERE b.status = ?1 AND s.starttime >= ?2 AND s.starttime < ?3 "
-                    + "GROUP BY b.showtime_id";
+            connection = pool.getConnection();
+            ps = connection.prepareStatement(sql);
+            bindPeriod(ps, paidStatus, from, to);
+            rs = ps.executeQuery();
             Map<String, Long> result = new HashMap<>();
-            for (Object[] row : castRows(bind(em.createNativeQuery(sql), paidStatus, from, to).getResultList())) {
-                result.put((String) row[0], (long) num(row[1]));
+            while (rs.next()) {
+                result.put(rs.getString(1), rs.getLong(2));
             }
             return result;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             System.err.println("[StatisticsDAO] Lỗi getSoldTicketsByShowtime: " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
-            em.close();
+            close(rs, ps, connection, pool);
         }
     }
 
     // Số đơn đặt vé chưa hủy (PENDING hoặc PAID) của 1 suất chiếu, dùng để chặn sửa/xóa suất đã bán vé
     public long countOpenBookings(String showtimeId, String cancelledStatus) {
-        EntityManager em = JPAUtil.getEntityManager();
+        String sql = "SELECT COUNT(*) FROM bookings b WHERE b.showtime_id = ? AND b.status <> ?";
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            Object count = em.createNativeQuery(
-                    "SELECT COUNT(*) FROM bookings b WHERE b.showtime_id = ?1 AND b.status <> ?2")
-                    .setParameter(1, showtimeId)
-                    .setParameter(2, cancelledStatus)
-                    .getSingleResult();
-            return (long) num(count);
-        } catch (Exception e) {
+            connection = pool.getConnection();
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, showtimeId);
+            ps.setString(2, cancelledStatus);
+            rs = ps.executeQuery();
+            return rs.next() ? rs.getLong(1) : 0;
+        } catch (SQLException e) {
             System.err.println("[StatisticsDAO] Lỗi countOpenBookings: " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
-            em.close();
+            close(rs, ps, connection, pool);
         }
     }
 
-    private Query bind(Query q, String paidStatus, LocalDateTime from, LocalDateTime to) {
-        return q.setParameter(1, paidStatus).setParameter(2, from).setParameter(3, to);
+    private void bindPeriod(PreparedStatement ps, String paidStatus, LocalDateTime from, LocalDateTime to)
+            throws SQLException {
+        ps.setString(1, paidStatus);
+        ps.setTimestamp(2, Timestamp.valueOf(from));
+        ps.setTimestamp(3, Timestamp.valueOf(to));
     }
 
-    private List<Object[]> castRows(List<?> rows) {
-        List<Object[]> result = new ArrayList<>();
-        for (Object r : rows) {
-            result.add((Object[]) r);
-        }
-        return result;
-    }
-
-    private double num(Object o) {
-        return o instanceof Number ? ((Number) o).doubleValue() : 0;
+    private void close(ResultSet rs, PreparedStatement ps, Connection connection, ConnectionPool pool) {
+        DBUtil.closeResultSet(rs);
+        DBUtil.closePreparedStatement(ps);
+        pool.freeConnection(connection);
     }
 }

@@ -172,8 +172,7 @@ public class MovieDAO {
             trans.commit();
         } catch (Exception e) {
             if (trans.isActive()) trans.rollback();
-            System.err.println("[MovieDAO] Lỗi insert: " + e.getMessage());
-            throw new RuntimeException(e);
+            e.printStackTrace();
         } finally {
             em.close();
         }
@@ -188,8 +187,7 @@ public class MovieDAO {
             trans.commit();
         } catch (Exception e) {
             if (trans.isActive()) trans.rollback();
-            System.err.println("[MovieDAO] Lỗi update: " + e.getMessage());
-            throw new RuntimeException(e);
+            e.printStackTrace();
         } finally {
             em.close();
         }
@@ -207,8 +205,7 @@ public class MovieDAO {
             trans.commit();
         } catch (Exception e) {
             if (trans.isActive()) trans.rollback();
-            System.err.println("[MovieDAO] Lỗi delete: " + e.getMessage());
-            throw new RuntimeException(e);
+            e.printStackTrace();
         } finally {
             em.close();
         }
@@ -220,7 +217,7 @@ public class MovieDAO {
         try {
             String jpql = "SELECT m FROM Movie m LEFT JOIN FETCH m.showtimes s LEFT JOIN FETCH s.room r LEFT JOIN FETCH r.cinema WHERE m.movieID = :id";
             // Đọc lại từ DB thay vì bản trong cache dùng chung của EclipseLink: suất chiếu thêm sau
-            // không tự cập nhật danh sách showtimes của phim đã cache (trang chi tiết phim, đổi thời lượng)
+            // không tự cập nhật danh sách showtimes của phim đã cache (trang chi tiết phim)
             return em.createQuery(jpql, Movie.class)
                     .setParameter("id", id)
                     .setHint(QueryHints.REFRESH, HintValues.TRUE)

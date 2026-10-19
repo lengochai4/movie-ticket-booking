@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Connection pool cho phần của Vinh (Admin Phim - Suất chiếu - Combo - Thống kê), theo mẫu sách Murach Chương 12.
+  Lấy bằng JNDI: java:comp/env/jdbc/cinema (xem dao/admin/ConnectionPool.java).
+  Lưu ý: khi Tomcat chạy bằng file context riêng (SmartTomcat trong IntelliJ) Tomcat bỏ qua file này,
+  ConnectionPool sẽ tự tạo pool với cùng thông tin kết nối trong persistence.xml.
+-->
+<Context>
+    <Resource name="jdbc/cinema" auth="Container" type="javax.sql.DataSource"
+              driverClassName="org.postgresql.Driver"
+              url="jdbc:postgresql://dpg-datt14ou01pc73aecb50-a.oregon-postgres.render.com:5432/email_list_db_jut9"
+              username="email_list_db_jut9_user"
+              password="2hI1wdwOOKNvIH77Bilyuv4COJ7mkXDB"
+              initialSize="1" maxTotal="10" maxIdle="5" maxWaitMillis="10000"
+              validationQuery="SELECT 1" testOnBorrow="true"/>
+</Context>

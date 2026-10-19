@@ -60,33 +60,6 @@ public class ShowtimeDAO {
         }
     }
 
-    // Tìm các suất chiếu cùng phòng bị chồng giờ với khoảng [start, end).
-    // excludeId: bỏ qua chính suất chiếu đang sửa (null khi thêm mới)
-    public List<Showtime> findOverlapping(String roomId, LocalDateTime start, LocalDateTime end, String excludeId) {
-        EntityManager em = JPAUtil.getEntityManager();
-        try {
-            boolean hasExclude = excludeId != null && !excludeId.trim().isEmpty();
-            String jpql = "SELECT s FROM Showtime s LEFT JOIN FETCH s.movie " +
-                          "WHERE s.room.roomID = :roomId AND s.startTime < :end AND s.endTime > :start " +
-                          (hasExclude ? "AND s.showtimeID <> :excludeId " : "") +
-                          "ORDER BY s.startTime ASC";
-            TypedQuery<Showtime> q = em.createQuery(jpql, Showtime.class)
-                    .setParameter("roomId", roomId)
-                    .setParameter("start", start)
-                    .setParameter("end", end);
-            if (hasExclude) {
-                q.setParameter("excludeId", excludeId.trim());
-            }
-            return q.getResultList();
-        } catch (Exception e) {
-            // Không nuốt lỗi: nếu không kiểm tra được thì không cho lưu
-            System.err.println("[ShowtimeDAO] Lỗi findOverlapping: " + e.getMessage());
-            throw new RuntimeException(e);
-        } finally {
-            em.close();
-        }
-    }
-
     public void insert(Showtime s) {
         EntityManager em = JPAUtil.getEntityManager();
         EntityTransaction trans = em.getTransaction();
@@ -95,9 +68,8 @@ public class ShowtimeDAO {
             em.persist(s);
             trans.commit();
         } catch (Exception e) {
-            if (trans.isActive()) trans.rollback();
-            System.err.println("[ShowtimeDAO] Lỗi insert: " + e.getMessage());
-            throw new RuntimeException(e);
+            trans.rollback();
+            e.printStackTrace();
         } finally {
             em.close();
         }
@@ -111,9 +83,8 @@ public class ShowtimeDAO {
             em.merge(s);
             trans.commit();
         } catch (Exception e) {
-            if (trans.isActive()) trans.rollback();
-            System.err.println("[ShowtimeDAO] Lỗi update: " + e.getMessage());
-            throw new RuntimeException(e);
+            trans.rollback();
+            e.printStackTrace();
         } finally {
             em.close();
         }
@@ -130,9 +101,8 @@ public class ShowtimeDAO {
             }
             trans.commit();
         } catch (Exception e) {
-            if (trans.isActive()) trans.rollback();
-            System.err.println("[ShowtimeDAO] Lỗi delete: " + e.getMessage());
-            throw new RuntimeException(e);
+            trans.rollback();
+            e.printStackTrace();
         } finally {
             em.close();
         }

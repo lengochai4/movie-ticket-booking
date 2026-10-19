@@ -635,7 +635,7 @@
                 <select id="filterRoom" class="filter-select" onchange="applyShowtimeFilter()">
                     <option value="">-- Tất cả phòng chiếu --</option>
                     <c:forEach items="${roomList}" var="r">
-                        <option value="${r.roomID}"><c:out value="${r.name}"/> - <c:out value="${r.cinema != null ? r.cinema.name : 'Cinema'}"/></option>
+                        <option value="${r.roomID}"><c:out value="${r.name}"/> - <c:out value="${r.cinemaName}"/></option>
                     </c:forEach>
                 </select>
 
@@ -671,7 +671,7 @@
                     <c:choose>
                         <c:when test="${not empty showtimeList}">
                             <c:forEach items="${showtimeList}" var="st">
-                                <tr data-movie-id="${st.movie.movieID}" data-room-id="${st.room.roomID}" data-status="${statusById[st.showtimeID]}">
+                                <tr data-movie-id="${st.movie.movieID}" data-room-id="${st.room.roomID}" data-status="${st.status}">
                                     <td><strong style="color: #fcca46;" title="${st.showtimeID}">#${fn:substring(st.showtimeID, 0, 8)}</strong></td>
                                     <td>
                                         <div style="display: flex; gap: 12px; align-items: center;">
@@ -687,7 +687,7 @@
                                     </td>
                                     <td>
                                         <div class="badge-room"><c:out value="${st.room.name}"/></div>
-                                        <div style="font-size: 11px; color: #8c8273; margin-top: 4px;"><c:out value="${st.room.cinema != null ? st.room.cinema.name : ''}"/></div>
+                                        <div style="font-size: 11px; color: #8c8273; margin-top: 4px;"><c:out value="${st.room.cinemaName}"/></div>
                                     </td>
                                     <td>
                                         <div style="font-size: 15px; font-weight: 700; color: #fcca46;">${st.formattedStartTime} - ${st.formattedEndTime}</div>
@@ -702,17 +702,17 @@
                                         </strong>
                                     </td>
                                     <td>
-                                        <div style="font-size: 12px; color: #f6ead2; font-weight: 600;">${soldById[st.showtimeID] != null ? soldById[st.showtimeID] : 0} / ${st.room.capacity} vé (${fillById[st.showtimeID]}%)</div>
+                                        <div style="font-size: 12px; color: #f6ead2; font-weight: 600;">${st.soldTickets} / ${st.room.capacity} vé (${st.fillPercent}%)</div>
                                         <div class="seat-progress-container">
-                                            <div class="seat-progress-bar ${fillById[st.showtimeID] >= 80 ? 'high' : ''}" style="width: ${fillById[st.showtimeID]}%;"></div>
+                                            <div class="seat-progress-bar ${st.fillPercent >= 80 ? 'high' : ''}" style="width: ${st.fillPercent}%;"></div>
                                         </div>
                                     </td>
                                     <td>
                                         <c:choose>
-                                            <c:when test="${statusById[st.showtimeID] == 'ENDED'}">
+                                            <c:when test="${st.status == 'ENDED'}">
                                                 <span class="badge-status" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3);">● Đã chiếu</span>
                                             </c:when>
-                                            <c:when test="${statusById[st.showtimeID] == 'SOON'}">
+                                            <c:when test="${st.status == 'SOON'}">
                                                 <span class="badge-status" style="background: rgba(229, 169, 59, 0.15); color: #fcca46; border: 1px solid rgba(229, 169, 59, 0.3);">● Sắp chiếu</span>
                                             </c:when>
                                             <c:otherwise>
@@ -811,20 +811,20 @@
             <div class="timeline-room-row">
                 <div class="timeline-room-label">
                     <span class="timeline-room-title"><c:out value="${row.room.name}"/></span>
-                    <span class="timeline-room-capacity"><c:out value="${row.room.cinema != null ? row.room.cinema.name : ''}"/> • ${row.room.capacity} chỗ</span>
+                    <span class="timeline-room-capacity"><c:out value="${row.room.cinemaName}"/> • ${row.room.capacity} chỗ</span>
                 </div>
                 <div class="timeline-room-track">
                     <c:forEach items="${row.blocks}" var="b">
-                        <c:set var="st" value="${b.st}"/>
-                        <div class="timeline-block ${statusById[st.showtimeID] == 'ENDED' ? 'theme-dolby' : (statusById[st.showtimeID] == 'SOON' ? 'theme-gold' : 'theme-standard')}"
-                             style="left: ${b.left}%; width: ${b.width}%;" data-status="${statusById[st.showtimeID]}"
-                             title="<c:out value='${st.movie.title}'/> (${st.timeRange}) - ${soldById[st.showtimeID] != null ? soldById[st.showtimeID] : 0}/${st.room.capacity} vé"
+                        <c:set var="st" value="${b.showtime}"/>
+                        <div class="timeline-block ${st.status == 'ENDED' ? 'theme-dolby' : (st.status == 'SOON' ? 'theme-gold' : 'theme-standard')}"
+                             style="left: ${b.left}%; width: ${b.width}%;" data-status="${st.status}"
+                             title="<c:out value='${st.movie.title}'/> (${st.timeRange}) - ${st.soldTickets}/${st.room.capacity} vé"
                              data-id="${st.showtimeID}" data-movie-id="${st.movie.movieID}" data-room-id="${st.room.roomID}"
                              data-date="${st.formattedDateIso}" data-start="${st.formattedStartTime}" data-end="${st.formattedEndTime}"
                              data-price="<fmt:formatNumber value='${st.price != null ? st.price : 90000}' groupingUsed='false' maxFractionDigits='0'/>"
                              onclick="openEditShowtimeFromData(this)">
                             <div class="timeline-block-title"><c:out value="${st.movie.title}"/></div>
-                            <div class="timeline-block-meta"><span>${st.timeRange}</span> <span>${fillById[st.showtimeID]}%</span></div>
+                            <div class="timeline-block-meta"><span>${st.timeRange}</span> <span>${st.fillPercent}%</span></div>
                         </div>
                     </c:forEach>
                 </div>
@@ -880,7 +880,7 @@
                         <label class="form-label">Phòng Chiếu <span style="color: #ef4444;">*</span></label>
                         <select name="roomID" id="inputRoomID" class="form-select" required onchange="calculateEndTime()">
                                 <c:forEach items="${roomList}" var="r">
-                                    <option value="${r.roomID}"><c:out value="${r.name}"/> - <c:out value="${r.cinema != null ? r.cinema.name : 'Cinema'}"/> (${r.capacity} chỗ)</option>
+                                    <option value="${r.roomID}"><c:out value="${r.name}"/> - <c:out value="${r.cinemaName}"/> (${r.capacity} chỗ)</option>
                                 </c:forEach>
                             </select>
                     </div>

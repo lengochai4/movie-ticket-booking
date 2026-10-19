@@ -245,13 +245,13 @@
 
 <%---- ================= 5. DỮ LIỆU BIỂU ĐỒ (server render, JS chỉ đọc lại để vẽ) ================= ----%>
 <ul id="revenueSeriesData" hidden>
-    <c:forEach items="${chartLabels}" var="label" varStatus="loop">
-        <li data-value="${chartValues[loop.index]}"><c:out value="${label}"/></li>
+    <c:forEach items="${chartPoints}" var="point">
+        <li data-value="${point.value}"><c:out value="${point.label}"/></li>
     </c:forEach>
 </ul>
 <ul id="cinemaShareData" hidden>
     <c:forEach items="${cinemaRevenue}" var="row">
-        <li data-value="${row[1]}"><c:out value="${row[0]}"/></li>
+        <li data-value="${row.revenue}"><c:out value="${row.cinemaName}"/></li>
     </c:forEach>
 </ul>
 

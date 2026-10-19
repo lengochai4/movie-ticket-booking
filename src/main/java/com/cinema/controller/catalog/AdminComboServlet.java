@@ -1,7 +1,7 @@
 package com.cinema.controller.catalog;
 
 import com.cinema.dao.admin.ComboDAO;
-import com.cinema.entity.Combo;
+import com.cinema.dto.ComboDTO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -20,7 +21,7 @@ import java.util.List;
 public class AdminComboServlet extends HttpServlet {
 
     private static final List<String> CATEGORIES = Arrays.asList("Combo", "Bắp Rang", "Nước", "Đặc Biệt");
-    private static final List<String> STATUSES = Arrays.asList(Combo.STATUS_ACTIVE, Combo.STATUS_OUT_OF_STOCK);
+    private static final List<String> STATUSES = Arrays.asList(ComboDTO.STATUS_ACTIVE, ComboDTO.STATUS_OUT_OF_STOCK);
 
     private final ComboDAO comboDAO = new ComboDAO();
 
@@ -29,12 +30,18 @@ public class AdminComboServlet extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
 
-        List<Combo> comboList = comboDAO.findAll();
+        List<ComboDTO> comboList = new ArrayList<>();
+        try {
+            comboList = comboDAO.findAll();
+        } catch (RuntimeException e) {
+            System.err.println("[ADMIN COMBO] Lỗi khi tải danh sách combo: " + e.getMessage());
+            request.setAttribute("errorMessage", "Không tải được danh sách combo. Vui lòng thử lại.");
+        }
 
         // Thống kê nhanh từ dữ liệu thật
         int activeCount = 0;
         BigDecimal totalPrice = BigDecimal.ZERO;
-        for (Combo c : comboList) {
+        for (ComboDTO c : comboList) {
             if (c.isActive()) {
                 activeCount++;
             }
@@ -100,28 +107,28 @@ public class AdminComboServlet extends HttpServlet {
             return;
         }
         if (status == null || !STATUSES.contains(status)) {
-            status = Combo.STATUS_ACTIVE;
+            status = ComboDTO.STATUS_ACTIVE;
         }
 
-        // 2. Lưu vào database
+        // 2. Đưa dữ liệu form vào DTO rồi lưu vào database
+        ComboDTO combo = new ComboDTO();
+        combo.setComboID(comboId);
+        combo.setName(name);
+        combo.setCategory(category);
+        combo.setPrice(price);
+        combo.setStatus(status);
+        combo.setImageURL(imageURL);
+        combo.setDescription(description);
         try {
             if (comboId != null) {
-                Combo combo = comboDAO.findById(comboId);
-                if (combo == null) {
+                if (comboDAO.findById(comboId) == null) {
                     session.setAttribute("errorMessage", "Combo cần sửa không còn tồn tại.");
                     return;
                 }
-                combo.setName(name);
-                combo.setCategory(category);
-                combo.setPrice(price);
-                combo.setStatus(status);
-                combo.setImageURL(imageURL);
-                combo.setDescription(description);
                 comboDAO.update(combo);
                 System.out.println("[ADMIN COMBO] Đã cập nhật combo: " + name + " (ID: " + comboId + ")");
                 session.setAttribute("successMessage", "Đã cập nhật combo \"" + name + "\".");
             } else {
-                Combo combo = new Combo(name, description, price, category, imageURL, status);
                 comboDAO.insert(combo);
                 System.out.println("[ADMIN COMBO] Đã thêm combo mới: " + name);
                 session.setAttribute("successMessage", "Đã thêm combo \"" + name + "\".");
@@ -141,9 +148,12 @@ public class AdminComboServlet extends HttpServlet {
             return;
         }
         try {
-            comboDAO.delete(comboId);
-            System.out.println("[ADMIN COMBO] Đã xóa combo ID: " + comboId);
-            session.setAttribute("successMessage", "Đã xóa combo thành công.");
+            if (comboDAO.delete(comboId)) {
+                System.out.println("[ADMIN COMBO] Đã xóa combo ID: " + comboId);
+                session.setAttribute("successMessage", "Đã xóa combo thành công.");
+            } else {
+                session.setAttribute("errorMessage", "Combo cần xóa không còn tồn tại.");
+            }
         } catch (RuntimeException e) {
             System.err.println("[ADMIN COMBO] Lỗi khi xóa combo: " + e.getMessage());
             if (isForeignKeyViolation(e)) {

@@ -1,9 +1,9 @@
 package com.cinema.controller.catalog;
 
-import com.cinema.dao.catalog.MovieDAO;
-import com.cinema.dao.catalog.ShowtimeDAO;
-import com.cinema.entity.Movie;
-import com.cinema.entity.Showtime;
+import com.cinema.dao.admin.AdminMovieDAO;
+import com.cinema.dao.admin.AdminShowtimeDAO;
+import com.cinema.dto.MovieDTO;
+import com.cinema.dto.ShowtimeDTO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -23,8 +23,8 @@ import java.util.stream.Collectors;
 @WebServlet(urlPatterns = {"/admin/movies", "/admin/movies/save", "/admin/movies/delete"})
 public class AdminMovieServlet extends HttpServlet {
 
-    private final MovieDAO movieDAO = new MovieDAO();
-    private final ShowtimeDAO showtimeDAO = new ShowtimeDAO();
+    private final AdminMovieDAO movieDAO = new AdminMovieDAO();
+    private final AdminShowtimeDAO showtimeDAO = new AdminShowtimeDAO();
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -33,15 +33,12 @@ public class AdminMovieServlet extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
 
-        List<Movie> allMovies = new ArrayList<>();
+        List<MovieDTO> allMovies = new ArrayList<>();
         try {
             allMovies = movieDAO.findAll();
-            if (allMovies == null) {
-                allMovies = new ArrayList<>();
-            }
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             System.err.println("[ADMIN MOVIE] Lỗi khi tải danh sách phim từ database: " + e.getMessage());
-            e.printStackTrace();
+            request.setAttribute("errorMessage", "Không tải được danh sách phim. Vui lòng thử lại.");
         }
 
         // 1. Tính toán các chỉ số thống kê dựa hoàn toàn trên dữ liệu backend thực tế
@@ -51,13 +48,9 @@ public class AdminMovieServlet extends HttpServlet {
         int upcomingCount = 0;
         int totalDuration = 0;
 
-        for (Movie m : allMovies) {
-            if (m.getReleaseDate() != null) {
-                if (m.getReleaseDate().isAfter(today)) {
-                    upcomingCount++;
-                } else {
-                    nowShowingCount++;
-                }
+        for (MovieDTO m : allMovies) {
+            if (m.getReleaseDate() != null && m.getReleaseDate().isAfter(today)) {
+                upcomingCount++;
             } else {
                 nowShowingCount++;
             }
@@ -71,7 +64,7 @@ public class AdminMovieServlet extends HttpServlet {
         String genre = request.getParameter("genre");
         String ageRating = request.getParameter("ageRating");
 
-        List<Movie> filteredMovies = allMovies;
+        List<MovieDTO> filteredMovies = allMovies;
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             String kw = keyword.trim().toLowerCase();
@@ -128,19 +121,22 @@ public class AdminMovieServlet extends HttpServlet {
 
     private void handleSave(HttpServletRequest request) {
         HttpSession session = request.getSession();
-        String id = trimToNull(request.getParameter("movieID"));
-        String title = trimToNull(request.getParameter("title"));
-        String director = trimToNull(request.getParameter("director"));
-        String genre = trimToNull(request.getParameter("genre"));
+
+        // 1. Đọc dữ liệu form vào DTO
+        MovieDTO movie = new MovieDTO();
+        movie.setMovieID(trimToNull(request.getParameter("movieID")));
+        movie.setTitle(trimToNull(request.getParameter("title")));
+        movie.setDirector(trimToNull(request.getParameter("director")));
+        movie.setGenre(trimToNull(request.getParameter("genre")));
+        movie.setAgeRating(trimToNull(request.getParameter("ageRating")));
+        movie.setPosterURL(trimToNull(request.getParameter("posterURL")));
+        movie.setTrailerURL(trimToNull(request.getParameter("trailerURL")));
+        movie.setDescription(trimToNull(request.getParameter("description")));
         String durationStr = trimToNull(request.getParameter("duration"));
         String releaseDateStr = trimToNull(request.getParameter("releaseDate"));
-        String ageRating = trimToNull(request.getParameter("ageRating"));
-        String posterURL = trimToNull(request.getParameter("posterURL"));
-        String trailerURL = trimToNull(request.getParameter("trailerURL"));
-        String description = trimToNull(request.getParameter("description"));
 
-        // 1. Kiểm tra dữ liệu đầu vào
-        if (title == null) {
+        // 2. Kiểm tra dữ liệu đầu vào
+        if (movie.getTitle() == null) {
             session.setAttribute("errorMessage", "Tên phim không được để trống.");
             return;
         }
@@ -155,74 +151,57 @@ public class AdminMovieServlet extends HttpServlet {
             session.setAttribute("errorMessage", "Thời lượng phim phải là số phút lớn hơn 0.");
             return;
         }
+        movie.setDuration(duration);
 
         if (releaseDateStr == null) {
             session.setAttribute("errorMessage", "Vui lòng nhập ngày khởi chiếu. Phim không có ngày khởi chiếu sẽ không hiển thị cho khách.");
             return;
         }
-        LocalDate releaseDate;
         try {
-            releaseDate = LocalDate.parse(releaseDateStr);
+            movie.setReleaseDate(LocalDate.parse(releaseDateStr));
         } catch (Exception e) {
             session.setAttribute("errorMessage", "Ngày khởi chiếu không hợp lệ.");
             return;
         }
 
-        // 2. Lưu vào database
+        // 3. Lưu vào database
         try {
-            if (id != null) {
-                // Cập nhật phim hiện có
-                Movie movie = movieDAO.findById(id);
-                if (movie == null) {
+            if (movie.getMovieID() != null) {
+                MovieDTO existing = movieDAO.findById(movie.getMovieID());
+                if (existing == null) {
                     session.setAttribute("errorMessage", "Phim cần sửa không còn tồn tại.");
                     return;
                 }
                 // Đổi thời lượng thì giờ kết thúc của các suất sắp tới phải tính lại,
                 // nếu không việc kiểm tra trùng giờ cùng phòng sẽ dùng giờ kết thúc cũ
-                int recalculated = 0;
-                if (duration != movie.getDuration() && movie.getShowtimes() != null) {
-                    LocalDateTime now = LocalDateTime.now();
-                    for (Showtime st : movie.getShowtimes()) {
-                        if (st.getStartTime() == null || st.getStartTime().isBefore(now)) continue;
+                List<ShowtimeDTO> recalculated = new ArrayList<>();
+                if (duration != existing.getDuration()) {
+                    for (ShowtimeDTO st : showtimeDAO.findUpcomingByMovie(movie.getMovieID(), LocalDateTime.now())) {
                         LocalDateTime newEnd = st.getStartTime().plusMinutes(duration + 15);
-                        List<Showtime> overlaps = showtimeDAO.findOverlapping(
+                        List<ShowtimeDTO> overlaps = showtimeDAO.findOverlapping(
                                 st.getRoom().getRoomID(), st.getStartTime(), newEnd, st.getShowtimeID());
                         if (!overlaps.isEmpty()) {
-                            Showtime conflict = overlaps.get(0);
+                            ShowtimeDTO conflict = overlaps.get(0);
                             session.setAttribute("errorMessage", "Không thể đổi thời lượng thành " + duration
                                     + " phút: suất chiếu lúc " + st.getFormattedStartTime() + " ngày " + st.getFormattedDate()
                                     + " ở " + st.getRoom().getName() + " sẽ kết thúc lúc " + newEnd.format(TIME_FORMAT)
-                                    + ", trùng với suất \"" + (conflict.getMovie() != null ? conflict.getMovie().getTitle() : "")
+                                    + ", trùng với suất \"" + conflict.getMovie().getTitle()
                                     + "\" lúc " + conflict.getTimeRange() + ". Hãy dời suất chiếu trước.");
                             return;
                         }
                         st.setEndTime(newEnd);
-                        recalculated++;
+                        recalculated.add(st);
                     }
                 }
 
-                movie.setTitle(title);
-                movie.setDirector(director);
-                movie.setGenre(genre);
-                movie.setDuration(duration);
-                movie.setReleaseDate(releaseDate);
-                movie.setAgeRating(ageRating);
-                movie.setPosterURL(posterURL);
-                movie.setTrailerURL(trailerURL);
-                movie.setDescription(description);
-                movieDAO.update(movie);
-                System.out.println("[ADMIN MOVIE] Đã cập nhật phim: " + title + " (ID: " + id + ")");
-                session.setAttribute("successMessage", "Đã cập nhật phim \"" + title + "\"."
-                        + (recalculated > 0 ? " Đã tính lại giờ kết thúc của " + recalculated + " suất chiếu sắp tới." : ""));
+                movieDAO.updateWithShowtimeEnds(movie, recalculated);
+                System.out.println("[ADMIN MOVIE] Đã cập nhật phim: " + movie.getTitle() + " (ID: " + movie.getMovieID() + ")");
+                session.setAttribute("successMessage", "Đã cập nhật phim \"" + movie.getTitle() + "\"."
+                        + (recalculated.isEmpty() ? "" : " Đã tính lại giờ kết thúc của " + recalculated.size() + " suất chiếu sắp tới."));
             } else {
-                // Thêm phim mới
-                Movie newMovie = new Movie(title, description, posterURL, director, duration, releaseDate);
-                newMovie.setGenre(genre);
-                newMovie.setAgeRating(ageRating);
-                newMovie.setTrailerURL(trailerURL);
-                movieDAO.insert(newMovie);
-                System.out.println("[ADMIN MOVIE] Đã thêm phim mới: " + title);
-                session.setAttribute("successMessage", "Đã thêm phim \"" + title + "\".");
+                movieDAO.insert(movie);
+                System.out.println("[ADMIN MOVIE] Đã thêm phim mới: " + movie.getTitle());
+                session.setAttribute("successMessage", "Đã thêm phim \"" + movie.getTitle() + "\".");
             }
         } catch (RuntimeException e) {
             System.err.println("[ADMIN MOVIE] Lỗi khi lưu phim: " + e.getMessage());
@@ -239,9 +218,12 @@ public class AdminMovieServlet extends HttpServlet {
             return;
         }
         try {
-            movieDAO.delete(id);
-            System.out.println("[ADMIN MOVIE] Đã xóa phim có ID: " + id);
-            session.setAttribute("successMessage", "Đã xóa phim thành công.");
+            if (movieDAO.delete(id)) {
+                System.out.println("[ADMIN MOVIE] Đã xóa phim có ID: " + id);
+                session.setAttribute("successMessage", "Đã xóa phim thành công.");
+            } else {
+                session.setAttribute("errorMessage", "Phim cần xóa không còn tồn tại.");
+            }
         } catch (RuntimeException e) {
             System.err.println("[ADMIN MOVIE] Lỗi khi xóa phim: " + e.getMessage());
             if (isForeignKeyViolation(e)) {

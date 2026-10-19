@@ -1,6 +1,12 @@
 package com.cinema.controller.booking;
 
 import com.cinema.dao.admin.StatisticsDAO;
+import com.cinema.dto.ChartPointDTO;
+import com.cinema.dto.CinemaRevenueDTO;
+import com.cinema.dto.DashboardSummaryDTO;
+import com.cinema.dto.MovieRevenueDTO;
+import com.cinema.dto.RevenueRecordDTO;
+import com.cinema.dto.SeatFillDTO;
 import com.cinema.enums.BookingStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -8,7 +14,6 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
@@ -84,48 +89,32 @@ public class AdminDashboardServlet extends HttpServlet {
             buckets.put(t, 0.0);
         }
 
-        double totalRevenue = 0, ticketRevenue = 0, comboRevenue = 0, tickets = 0;
+        DashboardSummaryDTO summary = new DashboardSummaryDTO();
         double prevRevenue = 0;
-        double[] seatFill = {0, 0};
-        List<Object[]> cinemaRows = new ArrayList<>();
-        List<Map<String, Object>> topMovies = new ArrayList<>();
+        SeatFillDTO seatFill = new SeatFillDTO();
+        List<CinemaRevenueDTO> cinemaRevenue = new ArrayList<>();
+        List<MovieRevenueDTO> topMovies = new ArrayList<>();
 
         try {
-            // 3. Đọc số liệu từ bookings (chỉ đọc)
-            double[] summary = statisticsDAO.getSummary(PAID, from, to);
-            totalRevenue = summary[0];
-            ticketRevenue = summary[1];
-            comboRevenue = summary[2];
-            tickets = summary[4];
+            // 3. Đọc số liệu từ bookings (chỉ đọc) qua DTO
+            summary = statisticsDAO.getSummary(PAID, from, to);
             // Kỳ trước chỉ lấy đúng khoảng thời gian bằng phần đã trôi qua của kỳ này
             LocalDateTime cutoff = LocalDateTime.now().isBefore(to) ? LocalDateTime.now() : to;
             LocalDateTime prevTo = prevFrom.plus(java.time.Duration.between(from, cutoff));
-            prevRevenue = statisticsDAO.getSummary(PAID, prevFrom, prevTo)[0];
+            prevRevenue = statisticsDAO.getSummary(PAID, prevFrom, prevTo).getTotalRevenue();
             seatFill = statisticsDAO.getSeatFill(PAID, from, to);
 
-            for (Object[] row : statisticsDAO.getPaidBookingTimes(PAID, from, to)) {
-                LocalDateTime createdAt = toLocalDateTime(row[0]);
-                if (createdAt == null) continue;
-                LocalDateTime key = truncate(createdAt, bucketUnit);
-                buckets.merge(key, ((Number) row[1]).doubleValue(), Double::sum);
+            for (RevenueRecordDTO record : statisticsDAO.getPaidBookingRecords(PAID, from, to)) {
+                LocalDateTime key = truncate(record.getCreatedAt(), bucketUnit);
+                buckets.merge(key, record.getTotalPrice(), Double::sum);
             }
 
-            cinemaRows = statisticsDAO.getRevenueByCinema(PAID, from, to);
+            cinemaRevenue = statisticsDAO.getRevenueByCinema(PAID, from, to);
 
-            for (Object[] row : statisticsDAO.getTopMovies(PAID, from, to, 5)) {
-                double revenue = ((Number) row[7]).doubleValue();
-                Map<String, Object> item = new HashMap<>();
-                item.put("movieID", row[0]);
-                item.put("title", row[1]);
-                item.put("genre", row[2] != null ? row[2] : "Điện ảnh");
-                item.put("duration", row[3]);
-                item.put("posterUrl", row[4]);
-                item.put("showtimesCount", ((Number) row[5]).longValue());
-                item.put("ticketsSold", ((Number) row[6]).longValue());
-                item.put("revenue", Math.round(revenue));
-                double percent = totalRevenue > 0 ? revenue * 100.0 / totalRevenue : 0.0;
-                item.put("contributionPercent", String.format(Locale.US, "%.1f", percent));
-                topMovies.add(item);
+            topMovies = statisticsDAO.getTopMovies(PAID, from, to, 5);
+            for (MovieRevenueDTO m : topMovies) {
+                double percent = summary.getTotalRevenue() > 0 ? m.getRevenue() * 100.0 / summary.getTotalRevenue() : 0.0;
+                m.setContributionPercent(String.format(Locale.US, "%.1f", percent));
             }
         } catch (RuntimeException e) {
             System.err.println("[ADMIN DASHBOARD] Lỗi khi đọc số liệu thống kê: " + e.getMessage());
@@ -139,49 +128,37 @@ public class AdminDashboardServlet extends HttpServlet {
         DecimalFormat df = new DecimalFormat("#,###", symbols);
         df.setGroupingUsed(true);
 
-        List<String> chartLabels = new ArrayList<>();
-        List<String> chartValues = new ArrayList<>();
+        List<ChartPointDTO> chartPoints = new ArrayList<>();
         for (Map.Entry<LocalDateTime, Double> e : buckets.entrySet()) {
-            chartLabels.add(bucketLabel(e.getKey(), bucketUnit));
             // Biểu đồ hiển thị theo triệu VNĐ
-            chartValues.add(String.format(Locale.US, "%.2f", e.getValue() / 1_000_000));
+            chartPoints.add(new ChartPointDTO(bucketLabel(e.getKey(), bucketUnit),
+                    String.format(Locale.US, "%.2f", e.getValue() / 1_000_000)));
         }
 
         String growthText;
         boolean growthPositive = true;
         if (prevRevenue > 0) {
-            double pct = (totalRevenue - prevRevenue) * 100.0 / prevRevenue;
+            double pct = (summary.getTotalRevenue() - prevRevenue) * 100.0 / prevRevenue;
             growthPositive = pct >= 0;
             growthText = String.format(Locale.US, "%+.1f%% ", pct) + compareLabel;
         } else {
-            growthText = totalRevenue > 0 ? "Kỳ trước chưa có doanh thu" : "Chưa có doanh thu trong kỳ này";
+            growthText = summary.getTotalRevenue() > 0 ? "Kỳ trước chưa có doanh thu" : "Chưa có doanh thu trong kỳ này";
         }
-
-        String fillRate = seatFill[1] > 0
-                ? String.format(Locale.US, "%.1f%%", seatFill[0] * 100.0 / seatFill[1])
-                : "0%";
 
         request.setAttribute("period", period);
         request.setAttribute("currentYear", today.getYear());
-        request.setAttribute("totalRevenueFormatted", df.format(Math.round(ticketRevenue)) + "đ");
-        request.setAttribute("totalTicketsFormatted", df.format(Math.round(tickets)));
-        request.setAttribute("comboRevenueFormatted", df.format(Math.round(comboRevenue)) + "đ");
-        request.setAttribute("fillRateFormatted", fillRate);
+        request.setAttribute("totalRevenueFormatted", df.format(Math.round(summary.getTicketRevenue())) + "đ");
+        request.setAttribute("totalTicketsFormatted", df.format(summary.getTicketCount()));
+        request.setAttribute("comboRevenueFormatted", df.format(Math.round(summary.getComboRevenue())) + "đ");
+        request.setAttribute("fillRateFormatted", seatFill.getFillRateText());
         request.setAttribute("chartTitle", chartTitle);
         request.setAttribute("growthText", growthText);
         request.setAttribute("growthPositive", growthPositive);
-        request.setAttribute("chartLabels", chartLabels);
-        request.setAttribute("chartValues", chartValues);
-        request.setAttribute("cinemaRevenue", cinemaRows);
+        request.setAttribute("chartPoints", chartPoints);
+        request.setAttribute("cinemaRevenue", cinemaRevenue);
         request.setAttribute("topMovies", topMovies);
 
         request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp").forward(request, response);
-    }
-
-    private LocalDateTime toLocalDateTime(Object value) {
-        if (value instanceof LocalDateTime) return (LocalDateTime) value;
-        if (value instanceof Timestamp) return ((Timestamp) value).toLocalDateTime();
-        return null;
     }
 
     private LocalDateTime truncate(LocalDateTime t, ChronoUnit unit) {
