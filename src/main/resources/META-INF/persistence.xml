@@ -10,6 +10,11 @@
         <class>com.cinema.entity.Showtime</class>
         <class>com.cinema.entity.Seat</class>
         <class>com.cinema.entity.Combo</class>
+        <class>com.cinema.entity.Booking</class>
+        <class>com.cinema.entity.Ticket</class>
+        <class>com.cinema.entity.User</class>
+        <class>com.cinema.entity.Review</class>
+        <class>com.cinema.entity.LoyaltyAccount</class>
         <exclude-unlisted-classes>false</exclude-unlisted-classes>
 
         <properties>
@@ -19,8 +24,8 @@
             <property name="jakarta.persistence.jdbc.user" value="email_list_db_jut9_user" />
             <property name="jakarta.persistence.jdbc.password" value="2hI1wdwOOKNvIH77Bilyuv4COJ7mkXDB" />
 
-            <!-- EclipseLink properties -->
-            <property name="eclipselink.ddl-generation" value="none"/>
+            <!-- EclipseLink properties: Tự động cập nhật bảng/cột nếu thiếu -->
+            <property name="eclipselink.ddl-generation" value="create-or-extend-tables"/>
             <!-- In câu lệnh SQL ra console để dễ debug -->
             <property name="eclipselink.logging.level.sql" value="FINE"/>
             <property name="eclipselink.logging.parameters" value="true"/>

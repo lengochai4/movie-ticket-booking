@@ -66,7 +66,7 @@
                 <div>
                     <span style="font-size: 11px; color: #a89f91; text-transform: uppercase; letter-spacing: 0.5px;">MÃ ĐƠN HÀNG</span>
                     <div style="font-family: monospace; font-size: 18px; font-weight: 800; color: #fcca46;">
-                        ${bookingId}
+                        ${not empty bookingDetails.orderCode ? bookingDetails.orderCode : bookingId}
                     </div>
                 </div>
                 <div style="text-align: right;">
@@ -78,6 +78,29 @@
                     </div>
                 </div>
             </div>
+
+            <%---- Chi tiết suất chiếu, ghế và tổng tiền ----%>
+            <c:if test="${not empty bookingDetails.movieTitle}">
+                <div style="margin-bottom: 16px; padding: 12px 16px; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(252, 202, 70, 0.2);">
+                    <div style="font-weight: 700; color: #fcca46; font-size: 16px;">${bookingDetails.movieTitle}</div>
+                    <div style="font-size: 13px; color: #d0c7b7; margin-top: 4px;">
+                        ${bookingDetails.cinemaName} - ${bookingDetails.roomName}
+                    </div>
+                    <div style="font-size: 13px; color: #a89f91; margin-top: 4px;">
+                        Suất chiếu: <fmt:formatDate value="${bookingDetails.showStart}" pattern="HH:mm - dd/MM/yyyy"/>
+                    </div>
+                    <div style="font-size: 13px; color: #ffffff; margin-top: 4px;">
+                        Ghế: <strong style="color: #fcca46;">${bookingDetails.seats}</strong>
+                        <c:if test="${not empty bookingDetails.combos}"> | Bắp nước: ${bookingDetails.combos}</c:if>
+                    </div>
+                    <div style="font-size: 13.5px; color: #69db7c; margin-top: 6px; font-weight: 700;">
+                        Tổng thanh toán: <fmt:formatNumber value="${bookingDetails.totalPrice}" type="number"/>đ
+                        <c:if test="${bookingDetails.pointsEarned > 0}"> 
+                            <span style="color: #fcca46; font-size: 12px; font-weight: normal; margin-left: 6px;">(★ Tích lũy +${bookingDetails.pointsEarned} điểm)</span>
+                        </c:if>
+                    </div>
+                </div>
+            </c:if>
 
             <%---- Mã QR Check-in vào rạp ----%>
             <div style="text-align: center; margin: 20px 0; padding: 16px; background: #ffffff; border-radius: 12px; display: inline-block; width: fit-content; margin: 0 auto 20px auto;">

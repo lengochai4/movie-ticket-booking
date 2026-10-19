@@ -4,6 +4,7 @@ import com.cinema.dao.booking.BookingDAO;
 import com.cinema.model.entity.Combo;
 import com.cinema.model.entity.Payment;
 import com.cinema.model.entity.Seat;
+import com.cinema.service.order.LoyaltyService;
 import com.cinema.util.VNPayConfig;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -17,13 +18,21 @@ import java.util.*;
 public class BookingService {
 
     private final BookingDAO bookingDAO;
+    private final LoyaltyService loyaltyService;
 
     public BookingService() {
         this.bookingDAO = new BookingDAO();
+        this.loyaltyService = new LoyaltyService();
     }
 
     public BookingService(BookingDAO bookingDAO) {
         this.bookingDAO = bookingDAO;
+        this.loyaltyService = new LoyaltyService();
+    }
+
+    public BookingService(BookingDAO bookingDAO, LoyaltyService loyaltyService) {
+        this.bookingDAO = bookingDAO;
+        this.loyaltyService = loyaltyService != null ? loyaltyService : new LoyaltyService();
     }
 
     /**
@@ -31,16 +40,17 @@ public class BookingService {
      */
     public List<Seat> getSeatMap(String showTimeID) {
         if (showTimeID == null || showTimeID.trim().isEmpty()) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
         return bookingDAO.getSeatsByShowtime(showTimeID.trim());
     }
 
     /**
-     * Giữ ghế với mã booking duy nhất trong 10 phút.
+     * Giữ ghế với mã booking duy nhất trong 10 phút kèm thông tin người đặt.
      * Trả về bookingID nếu thành công, null nếu thất bại hoặc trùng ghế.
      */
-    public String holdSeats(int userID, String showTimeID, List<String> seatIDs) {
+    public String holdSeats(String userID, String showTimeID, List<String> seatIDs,
+                            String customerName, String email, String phone) {
         if (showTimeID == null || showTimeID.trim().isEmpty() || seatIDs == null || seatIDs.isEmpty()) {
             return null;
         }
@@ -49,19 +59,28 @@ public class BookingService {
         String bookingID = "BK_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
         int holdMinutes = 10;
 
-        boolean success = bookingDAO.holdSeats(bookingID, userID, showTimeID.trim(), seatIDs, holdMinutes);
+        boolean success = bookingDAO.holdSeats(bookingID, userID, showTimeID.trim(), seatIDs, holdMinutes,
+                customerName, email, phone);
         return success ? bookingID : null;
     }
 
+    public String holdSeats(String userID, String showTimeID, List<String> seatIDs) {
+        return holdSeats(userID, showTimeID, seatIDs, null, null, null);
+    }
+
+    public String holdSeats(int userID, String showTimeID, List<String> seatIDs) {
+        return holdSeats(String.valueOf(userID), showTimeID, seatIDs, null, null, null);
+    }
+
     /**
-     * Lấy toàn bộ danh sách Combo bắp nước từ bảng "Combo".
+     * Lấy toàn bộ danh sách Combo bắp nước đang mở bán.
      */
     public List<Combo> getAllCombos() {
         return bookingDAO.getAllCombos();
     }
 
     /**
-     * Lưu danh sách combo bắp nước cho đơn đặt vé vào "BookingCombo".
+     * Lưu danh sách combo bắp nước cho đơn đặt vé vào "bookings".
      */
     public void saveCombos(String bookingID, Map<String, Integer> comboQuantities) {
         if (bookingID != null && !bookingID.trim().isEmpty() && comboQuantities != null) {
@@ -70,8 +89,39 @@ public class BookingService {
     }
 
     /**
+     * Cập nhật thông tin giảm trừ điểm và tổng tiền cuối cùng cho đơn hàng PENDING.
+     */
+    public boolean updatePendingBooking(String bookingID, int pointsUsed, BigDecimal finalAmount,
+                                        String customerName, String email, String phone) {
+        if (bookingID == null || bookingID.trim().isEmpty()) {
+            return false;
+        }
+        return bookingDAO.updatePendingBooking(bookingID.trim(), pointsUsed, finalAmount, customerName, email, phone);
+    }
+
+    /**
+     * Lấy tổng tiền tạm tính gốc (vé + bắp nước) từ đơn hàng.
+     */
+    public BigDecimal getRawTotal(String bookingID) {
+        if (bookingID == null || bookingID.trim().isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return bookingDAO.calculateRawTotal(bookingID.trim());
+    }
+
+    /**
+     * Lấy chi tiết thông tin đơn hàng để kiểm tra tính hợp lệ và hiển thị.
+     */
+    public Map<String, Object> getBookingDetails(String bookingID) {
+        if (bookingID == null || bookingID.trim().isEmpty()) {
+            return null;
+        }
+        return bookingDAO.getBookingDetails(bookingID.trim());
+    }
+
+    /**
      * Tính tổng tiền thanh toán sau khi trừ điểm tích lũy:
-     * Tổng thô (vé + combo) - (pointsToUse * 1.000). Nếu kết quả < 0 thì trả về 0.
+     * Tổng thô (vé + combo) - (pointsToUse * 10.000đ). Nếu kết quả < 0 thì trả về 0.
      */
     public BigDecimal calculateFinalAmount(String bookingID, int pointsToUse) {
         if (bookingID == null || bookingID.trim().isEmpty()) {
@@ -80,7 +130,7 @@ public class BookingService {
 
         BigDecimal rawTotal = bookingDAO.calculateRawTotal(bookingID.trim());
         int safePoints = Math.max(0, pointsToUse);
-        BigDecimal discount = BigDecimal.valueOf(safePoints * 1000L);
+        BigDecimal discount = BigDecimal.valueOf(safePoints * (long) LoyaltyService.POINT_VALUE_VND);
 
         BigDecimal finalAmount = rawTotal.subtract(discount);
         return (finalAmount.compareTo(BigDecimal.ZERO) < 0) ? BigDecimal.ZERO : finalAmount;
@@ -91,9 +141,11 @@ public class BookingService {
      * - Sinh mã paymentID: PAY_ + UUID
      * - Tính số tiền thanh toán thực tế (sau giảm trừ điểm)
      * - Tạo thực thể Payment
-     * - Gọi DAO completePayment để cập nhật Booking sang 'PAID' và chuyển vé sang 'AVAILABLE'
+     * - Trừ điểm tích lũy (nếu dùng) và tích điểm mới
+     * - Cập nhật Booking sang 'PAID' và chuyển vé sang 'AVAILABLE'
      */
-    public boolean processPayment(String bookingID, String paymentType, int pointsToUse) {
+    public boolean processPayment(String bookingID, String paymentType, int pointsToUse,
+                                  String userId, String customerName, String email, String phone) {
         if (bookingID == null || bookingID.trim().isEmpty()) {
             return false;
         }
@@ -105,7 +157,37 @@ public class BookingService {
                 : "CASH";
 
         Payment payment = new Payment(paymentID, resolvedType, finalAmount, LocalDateTime.now());
-        return bookingDAO.completePayment(bookingID.trim(), payment);
+
+        // Tính điểm thưởng được cộng (1 điểm mỗi 10.000 VNĐ chi tiêu)
+        int earnedPoints = (int) Math.floor(finalAmount.doubleValue() / 10000.0);
+
+        boolean success = bookingDAO.completePayment(bookingID.trim(), payment, pointsToUse, earnedPoints,
+                finalAmount, customerName, email, phone);
+
+        if (success && userId != null && !userId.isBlank()) {
+            // Trừ điểm đã sử dụng trong loyalty_accounts
+            if (pointsToUse > 0) {
+                try {
+                    loyaltyService.usePoints(userId.trim(), pointsToUse);
+                } catch (Exception e) {
+                    System.err.println("[BookingService] Lỗi trừ điểm loyalty: " + e.getMessage());
+                }
+            }
+            // Cộng điểm thưởng mới
+            if (earnedPoints > 0) {
+                try {
+                    loyaltyService.addPoints(userId.trim(), earnedPoints);
+                } catch (Exception e) {
+                    System.err.println("[BookingService] Lỗi cộng điểm loyalty: " + e.getMessage());
+                }
+            }
+        }
+
+        return success;
+    }
+
+    public boolean processPayment(String bookingID, String paymentType, int pointsToUse) {
+        return processPayment(bookingID, paymentType, pointsToUse, null, null, null, null);
     }
 
     /**
@@ -195,24 +277,65 @@ public class BookingService {
      * Xác nhận thanh toán qua VNPay:
      * - Tạo đối tượng Payment (paymentID = "PAY_" + transactionNo, type = "VNPAY", amount, now)
      * - Gọi BookingDAO.completePayment(...) để đổi BookingStatus sang PAID và TicketStatus sang AVAILABLE
+     * - Trừ điểm và tích lũy điểm thưởng thành viên
      */
-    public boolean completePaymentVNPay(String bookingId, String transactionNo, BigDecimal amount) {
+    public boolean completePaymentVNPay(String bookingId, String transactionNo, BigDecimal amount,
+                                        String userId, String customerName, String email, String phone) {
         if (bookingId == null || bookingId.trim().isEmpty()) {
             return false;
+        }
+
+        Map<String, Object> bookingDetails = bookingDAO.getBookingDetails(bookingId.trim());
+        int pointsUsed = 0;
+        String resolvedUserId = userId;
+        if (bookingDetails != null) {
+            if (bookingDetails.get("pointsUsed") instanceof Number) {
+                pointsUsed = ((Number) bookingDetails.get("pointsUsed")).intValue();
+            }
+            if ((resolvedUserId == null || resolvedUserId.isBlank()) && bookingDetails.get("userId") != null) {
+                resolvedUserId = String.valueOf(bookingDetails.get("userId"));
+            }
         }
 
         String paymentId = "PAY_" + ((transactionNo != null && !transactionNo.trim().isEmpty())
                 ? transactionNo.trim()
                 : UUID.randomUUID().toString().replace("-", "").substring(0, 10));
 
+        BigDecimal resolvedAmount = amount != null ? amount : BigDecimal.ZERO;
         Payment payment = new Payment(
                 paymentId,
                 "VNPAY",
-                amount != null ? amount : BigDecimal.ZERO,
+                resolvedAmount,
                 LocalDateTime.now()
         );
 
-        return bookingDAO.completePayment(bookingId.trim(), payment);
+        int earnedPoints = (int) Math.floor(resolvedAmount.doubleValue() / 10000.0);
+
+        boolean success = bookingDAO.completePayment(bookingId.trim(), payment, pointsUsed, earnedPoints,
+                resolvedAmount, customerName, email, phone);
+
+        if (success && resolvedUserId != null && !resolvedUserId.isBlank()) {
+            if (pointsUsed > 0) {
+                try {
+                    loyaltyService.usePoints(resolvedUserId.trim(), pointsUsed);
+                } catch (Exception e) {
+                    System.err.println("[BookingService] Lỗi trừ điểm VNPay: " + e.getMessage());
+                }
+            }
+            if (earnedPoints > 0) {
+                try {
+                    loyaltyService.addPoints(resolvedUserId.trim(), earnedPoints);
+                } catch (Exception e) {
+                    System.err.println("[BookingService] Lỗi cộng điểm VNPay: " + e.getMessage());
+                }
+            }
+        }
+
+        return success;
+    }
+
+    public boolean completePaymentVNPay(String bookingId, String transactionNo, BigDecimal amount) {
+        return completePaymentVNPay(bookingId, transactionNo, amount, null, null, null, null);
     }
 
     /**

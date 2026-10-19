@@ -12,6 +12,10 @@ public class Combo implements Serializable {
     private String description;
     private BigDecimal price;
 
+    private String category;
+    private String imageURL;
+    private String status;
+
     public Combo() {
         this.price = BigDecimal.ZERO;
     }
@@ -21,6 +25,16 @@ public class Combo implements Serializable {
         this.name = name;
         this.description = description;
         this.price = price != null ? price : BigDecimal.ZERO;
+    }
+
+    public Combo(String comboID, String name, String description, BigDecimal price, String category, String imageURL, String status) {
+        this.comboID = comboID;
+        this.name = name;
+        this.description = description;
+        this.price = price != null ? price : BigDecimal.ZERO;
+        this.category = category;
+        this.imageURL = imageURL;
+        this.status = status;
     }
 
     public String getComboID() {
@@ -53,6 +67,30 @@ public class Combo implements Serializable {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getImageURL() {
+        return imageURL;
+    }
+
+    public void setImageURL(String imageURL) {
+        this.imageURL = imageURL;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     @Override

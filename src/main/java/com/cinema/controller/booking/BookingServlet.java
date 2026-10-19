@@ -2,7 +2,10 @@ package com.cinema.controller.booking;
 
 import com.cinema.model.entity.Combo;
 import com.cinema.model.entity.Seat;
+import com.cinema.order.LoginUserSupport;
 import com.cinema.service.booking.BookingService;
+import com.cinema.service.order.LoyaltyService;
+import com.cinema.util.VNPayConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -12,6 +15,8 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @WebServlet("/booking/*")
@@ -19,11 +24,13 @@ public class BookingServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     private BookingService bookingService;
+    private LoyaltyService loyaltyService;
 
     @Override
     public void init() throws ServletException {
         super.init();
         this.bookingService = new BookingService();
+        this.loyaltyService = new LoyaltyService();
     }
 
     @Override
@@ -96,6 +103,21 @@ public class BookingServlet extends HttpServlet {
     }
 
     /**
+     * Lấy User ID của người dùng đang đăng nhập trong Session (dạng UUID String).
+     */
+    private String resolveUserId(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return null;
+        }
+        Object userObj = session.getAttribute("loginUser");
+        if (userObj == null) {
+            userObj = session.getAttribute("user");
+        }
+        return LoginUserSupport.getUserId(userObj);
+    }
+
+    /**
      * GET /booking/seats?showtimeId=...
      * Lấy sơ đồ ghế và forward sang seat-map.jsp
      */
@@ -137,7 +159,7 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
-        // Đọc danh sách ghế từ form (hỗ trợ cả mảng checkbox và chuỗi phân cách bởi dấu phẩy)
+        // Đọc danh sách ghế từ form
         List<String> seatList = new ArrayList<>();
         String[] seatValues = request.getParameterValues("selectedSeats");
         if (seatValues != null && seatValues.length > 0) {
@@ -170,46 +192,35 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
-        // Lấy userID: mặc định là 2 (Lê Ngọc Hải) hoặc từ session
-        int userID = 2;
+        // Lấy thông tin người đặt vé từ session (nếu có)
         HttpSession session = request.getSession(false);
-        if (session != null) {
-            Object userObj = session.getAttribute("loginUser");
-            if (userObj == null) {
-                userObj = session.getAttribute("user");
-            }
-            if (userObj != null) {
-                try {
-                    java.lang.reflect.Method getIdMethod = userObj.getClass().getMethod("getUserID");
-                    Object idVal = getIdMethod.invoke(userObj);
-                    if (idVal instanceof Integer) {
-                        userID = (Integer) idVal;
-                    }
-                } catch (Exception ignored) {
-                }
-            }
+        Object userObj = session != null ? session.getAttribute("loginUser") : null;
+        if (userObj == null && session != null) {
+            userObj = session.getAttribute("user");
         }
 
-        // Thực hiện giữ ghế với transaction chống tranh chấp
-        String bookingId = bookingService.holdSeats(userID, showtimeId, seatList);
+        String userId = LoginUserSupport.getUserId(userObj);
+        String customerName = LoginUserSupport.getFullName(userObj);
+        String email = LoginUserSupport.getEmail(userObj);
+        String phone = LoginUserSupport.getPhone(userObj);
+
+        // Thực hiện giữ ghế với transaction và row locking chống tranh chấp
+        String bookingId = bookingService.holdSeats(userId, showtimeId, seatList, customerName, email, phone);
 
         if (bookingId != null) {
-            // Lưu bookingId vào session để hỗ trợ fallback
             HttpSession curSession = request.getSession(true);
             curSession.setAttribute("currentBookingId", bookingId);
             curSession.setAttribute("currentShowtimeId", showtimeId);
 
-            // Thành công -> chuyển sang bước chọn bắp nước
             response.sendRedirect(request.getContextPath() + "/booking/combos?bookingId=" + bookingId);
         } else {
-            // Thất bại do bị trùng ghế hoặc ghế vừa bị đặt
             response.sendRedirect(request.getContextPath() + "/booking/seats?showtimeId=" + showtimeId + "&error=occupied");
         }
     }
 
     /**
      * GET /booking/combos
-     * Nạp combos và bookingId, forward sang combo-select.jsp
+     * Nạp combos và bookingId, forward sang combo-selection.jsp
      */
     private void handleGetCombos(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -228,9 +239,10 @@ public class BookingServlet extends HttpServlet {
 
         List<Combo> comboList = bookingService.getAllCombos();
         request.setAttribute("combos", comboList);
+        request.setAttribute("comboList", comboList);
         request.setAttribute("bookingId", bookingId.trim());
 
-        request.getRequestDispatcher("/WEB-INF/views/booking/combo-select.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/booking/combo-selection.jsp").forward(request, response);
     }
 
     /**
@@ -277,7 +289,7 @@ public class BookingServlet extends HttpServlet {
 
     /**
      * GET /booking/checkout
-     * Tính tổng tiền, nạp attribute và forward sang checkout.jsp
+     * Tính tổng tiền, nạp số điểm khả dụng và forward sang checkout.jsp
      */
     private void handleGetCheckout(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -294,6 +306,21 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
+        Map<String, Object> bookingDetails = bookingService.getBookingDetails(bookingId.trim());
+        if (bookingDetails == null) {
+            response.sendRedirect(request.getContextPath() + "/movies");
+            return;
+        }
+
+        String userId = resolveUserId(request);
+        int availablePoints = 0;
+        if (userId != null && !userId.isBlank()) {
+            try {
+                availablePoints = loyaltyService.getPoints(userId.trim());
+            } catch (Exception ignored) {
+            }
+        }
+
         int pointsUsed = 0;
         String pointsStr = request.getParameter("pointsUsed");
         if (pointsStr != null && !pointsStr.trim().isEmpty()) {
@@ -302,11 +329,21 @@ public class BookingServlet extends HttpServlet {
             } catch (NumberFormatException ignored) {
             }
         }
+        // Giới hạn không quá số điểm hiện có
+        if (pointsUsed > availablePoints) {
+            pointsUsed = availablePoints;
+        }
 
+        BigDecimal rawTotal = bookingService.getRawTotal(bookingId.trim());
         BigDecimal totalAmount = bookingService.calculateFinalAmount(bookingId.trim(), pointsUsed);
+
         request.setAttribute("bookingId", bookingId.trim());
+        request.setAttribute("booking", bookingDetails);
+        request.setAttribute("bookingDetails", bookingDetails);
+        request.setAttribute("rawTotal", rawTotal);
         request.setAttribute("totalAmount", totalAmount);
         request.setAttribute("pointsUsed", pointsUsed);
+        request.setAttribute("availablePoints", availablePoints);
 
         String error = request.getParameter("error");
         if (error != null) {
@@ -318,9 +355,8 @@ public class BookingServlet extends HttpServlet {
 
     /**
      * POST /booking/pay
-     * Nhận paymentType, pointsUsed, gọi processPayment.
-     * Thành công -> redirect sang /booking/success?bookingId=...
-     * Thất bại -> redirect sang /booking/checkout?bookingId=...&error=failed
+     * Nhận paymentType, pointsUsed, contact info.
+     * Hỗ trợ thanh toán VNPay hoặc Tiền mặt/Ví điện tử.
      */
     private void handlePostPay(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -339,10 +375,23 @@ public class BookingServlet extends HttpServlet {
 
         String paymentType = request.getParameter("paymentType");
         if (paymentType == null || paymentType.trim().isEmpty()) {
-            paymentType = request.getParameter("paymentMethod"); // Fallback
+            paymentType = request.getParameter("paymentMethod");
         }
         if (paymentType == null || paymentType.trim().isEmpty()) {
             paymentType = "CASH";
+        }
+
+        String contactName = request.getParameter("contactName");
+        String contactPhone = request.getParameter("contactPhone");
+        String contactEmail = request.getParameter("contactEmail");
+
+        String userId = resolveUserId(request);
+        int availablePoints = 0;
+        if (userId != null && !userId.isBlank()) {
+            try {
+                availablePoints = loyaltyService.getPoints(userId.trim());
+            } catch (Exception ignored) {
+            }
         }
 
         int pointsUsed = 0;
@@ -353,10 +402,24 @@ public class BookingServlet extends HttpServlet {
             } catch (NumberFormatException ignored) {
             }
         }
+        // Giới hạn điểm hợp lệ
+        if (pointsUsed > availablePoints) {
+            pointsUsed = availablePoints;
+        }
+
+        BigDecimal rawTotal = bookingService.getRawTotal(bookingId.trim());
+        int maxPointsForOrder = (int) Math.floor(rawTotal.doubleValue() / LoyaltyService.POINT_VALUE_VND);
+        if (pointsUsed > maxPointsForOrder) {
+            pointsUsed = maxPointsForOrder;
+        }
+
+        BigDecimal finalAmount = bookingService.calculateFinalAmount(bookingId.trim(), pointsUsed);
+
+        // Lưu trước điểm dùng và thông tin khách hàng vào đơn PENDING
+        bookingService.updatePendingBooking(bookingId.trim(), pointsUsed, finalAmount, contactName, contactEmail, contactPhone);
 
         // Nếu phương thức thanh toán là VNPAY -> chuyển hướng sang cổng thanh toán VNPay Sandbox
         if ("VNPAY".equalsIgnoreCase(paymentType.trim())) {
-            BigDecimal finalAmount = bookingService.calculateFinalAmount(bookingId.trim(), pointsUsed);
             long amountVnd = finalAmount.longValue();
             String vnpayUrl = bookingService.createVNPayUrl(request, bookingId.trim(), amountVnd);
             response.sendRedirect(vnpayUrl);
@@ -364,7 +427,8 @@ public class BookingServlet extends HttpServlet {
         }
 
         // Các phương thức thanh toán trực tiếp khác (CASH / MOMO)
-        boolean success = bookingService.processPayment(bookingId.trim(), paymentType.trim(), pointsUsed);
+        boolean success = bookingService.processPayment(bookingId.trim(), paymentType.trim(), pointsUsed,
+                userId, contactName, contactEmail, contactPhone);
         if (success) {
             response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId.trim());
         } else {
@@ -374,10 +438,52 @@ public class BookingServlet extends HttpServlet {
 
     /**
      * GET /booking/vnpay-return
-     * Nhận phản hồi IPN / Callback từ cổng thanh toán VNPay
+     * Nhận phản hồi IPN / Callback từ cổng thanh toán VNPay:
+     * 1. Xác thực chữ ký HMAC-SHA512 qua hashData
+     * 2. Kiểm tra mã phản hồi vnp_ResponseCode = 00
+     * 3. Kiểm tra số tiền thanh toán khớp với giá trị đơn hàng trong DB
+     * 4. Đổi trạng thái sang PAID, trừ điểm và cộng điểm tích lũy
      */
     private void handleVNPayReturn(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        Map<String, String[]> parameterMap = request.getParameterMap();
+        Map<String, String> fields = new HashMap<>();
+        for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
+            String name = entry.getKey();
+            String[] values = entry.getValue();
+            if (values != null && values.length > 0) {
+                fields.put(name, values[0]);
+            }
+        }
+
+        String vnp_SecureHash = fields.remove("vnp_SecureHash");
+        fields.remove("vnp_SecureHashType");
+
+        // 1. Kiểm tra chữ ký bảo mật HMAC-SHA512
+        List<String> fieldNames = new ArrayList<>(fields.keySet());
+        Collections.sort(fieldNames);
+
+        StringBuilder hashData = new StringBuilder();
+        try {
+            Iterator<String> itr = fieldNames.iterator();
+            while (itr.hasNext()) {
+                String fieldName = itr.next();
+                String fieldValue = fields.get(fieldName);
+                if (fieldValue != null && fieldValue.length() > 0) {
+                    hashData.append(fieldName);
+                    hashData.append('=');
+                    hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
+                    if (itr.hasNext()) {
+                        hashData.append('&');
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[BookingServlet] Lỗi build hash data: " + e.getMessage());
+        }
+
+        String signValue = VNPayConfig.hmacSHA512(VNPayConfig.VNP_HASH_SECRET, hashData.toString());
+
         String responseCode = request.getParameter("vnp_ResponseCode");
         String txnRef = request.getParameter("vnp_TxnRef");
         String transactionNo = request.getParameter("vnp_TransactionNo");
@@ -408,35 +514,68 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
-        // Kiểm tra mã phản hồi VNPay: "00" là thành công
-        if ("00".equals(responseCode)) {
-            BigDecimal amount = null;
-            if (vnpAmount != null && !vnpAmount.trim().isEmpty()) {
-                try {
-                    // VNPay quy định số tiền gửi sang và trả về đều nhân 100
-                    amount = new BigDecimal(vnpAmount.trim()).divide(new BigDecimal(100));
-                } catch (Exception ignored) {
-                }
-            }
-            if (amount == null) {
-                amount = bookingService.calculateFinalAmount(bookingId, 0);
-            }
+        // Xác thực chữ ký số VNPay
+        if (vnp_SecureHash == null || !signValue.equalsIgnoreCase(vnp_SecureHash)) {
+            System.err.println("[BookingServlet] VNPay checksum không hợp lệ! Computed: " + signValue + ", Received: " + vnp_SecureHash);
+            response.sendRedirect(request.getContextPath() + "/booking/checkout?bookingId=" + bookingId + "&error=vnpay_checksum_failed");
+            return;
+        }
 
-            boolean success = bookingService.completePaymentVNPay(bookingId, transactionNo, amount);
-            if (success) {
-                response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId);
-            } else {
-                response.sendRedirect(request.getContextPath() + "/booking/checkout?bookingId=" + bookingId + "&error=failed");
-            }
-        } else {
-            // Người dùng hủy thanh toán hoặc giao dịch thất bại
+        // Kiểm tra mã phản hồi VNPay: "00" là thành công
+        if (!"00".equals(responseCode)) {
             response.sendRedirect(request.getContextPath() + "/booking/checkout?bookingId=" + bookingId + "&error=vnpay_cancelled");
+            return;
+        }
+
+        // Kiểm tra thông tin đơn hàng trong database
+        Map<String, Object> bookingDetails = bookingService.getBookingDetails(bookingId);
+        if (bookingDetails == null) {
+            response.sendRedirect(request.getContextPath() + "/movies");
+            return;
+        }
+
+        String status = (String) bookingDetails.get("status");
+        if ("PAID".equalsIgnoreCase(status)) {
+            // Đơn đã thanh toán thành công trước đó (Idempotency)
+            response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId);
+            return;
+        }
+
+        // 3. Đối chiếu số tiền thanh toán thực tế với DB
+        BigDecimal amount = null;
+        if (vnpAmount != null && !vnpAmount.trim().isEmpty()) {
+            try {
+                amount = new BigDecimal(vnpAmount.trim()).divide(new BigDecimal(100));
+            } catch (Exception ignored) {
+            }
+        }
+        if (amount == null) {
+            amount = BigDecimal.valueOf(bookingDetails.get("totalPrice") != null ? (Double) bookingDetails.get("totalPrice") : 0.0);
+        }
+
+        double dbTotal = bookingDetails.get("totalPrice") != null ? (Double) bookingDetails.get("totalPrice") : 0.0;
+        if (Math.abs(dbTotal - amount.doubleValue()) > 1.0) {
+            System.err.println("[BookingServlet] Số tiền VNPay (" + amount + ") không khớp với đơn hàng (" + dbTotal + ")");
+            response.sendRedirect(request.getContextPath() + "/booking/checkout?bookingId=" + bookingId + "&error=amount_mismatch");
+            return;
+        }
+
+        String userId = resolveUserId(request);
+        if (userId == null && bookingDetails.get("userId") != null) {
+            userId = String.valueOf(bookingDetails.get("userId"));
+        }
+
+        boolean success = bookingService.completePaymentVNPay(bookingId, transactionNo, amount, userId, null, null, null);
+        if (success) {
+            response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId);
+        } else {
+            response.sendRedirect(request.getContextPath() + "/booking/checkout?bookingId=" + bookingId + "&error=failed");
         }
     }
 
     /**
      * GET /booking/success
-     * Nạp bookingId, forward sang booking-success.jsp
+     * Nạp bookingId và thông tin đơn vé, forward sang booking-success.jsp
      */
     private void handleGetSuccess(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -453,7 +592,11 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
+        Map<String, Object> bookingDetails = bookingService.getBookingDetails(bookingId.trim());
         request.setAttribute("bookingId", bookingId.trim());
+        request.setAttribute("booking", bookingDetails);
+        request.setAttribute("bookingDetails", bookingDetails);
+
         request.getRequestDispatcher("/WEB-INF/views/booking/booking-success.jsp").forward(request, response);
     }
 }

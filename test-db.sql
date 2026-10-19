@@ -1,1 +1,0 @@
-SELECT * FROM "Payment" ORDER BY "paymentDate" DESC LIMIT 1;
