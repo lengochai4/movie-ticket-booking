@@ -51,11 +51,33 @@
 
                 <%---- KHUNG DANH SÁCH COMBO ĐỘNG ----%>
                 <div class="combos-grid" id="combosList">
-                    <%-- KHI CÓ DỮ LIỆU ĐỘNG TỪ JAVA BACKEND --%>
-                    <c:if test="${not empty comboList}">
-                        <c:forEach items="${comboList}" var="c">
-                            <div class="combo-card" data-id="${c.id}" data-name="${c.name}" data-price="${c.price}">
-                                <img src="${c.imageUrl}" alt="${c.name}" class="combo-img">
+                    <%-- KHI CÓ DỮ LIỆU ĐỘNG TỪ JAVA BACKEND (HỖ TRỢ CẢ COMBOS VÀ COMBOLIST) --%>
+                    <c:set var="activeCombos" value="${not empty combos ? combos : comboList}" />
+                    <c:if test="${not empty activeCombos}">
+                        <c:forEach items="${activeCombos}" var="c" varStatus="st">
+                            <c:set var="cid" value="${not empty c.comboID ? c.comboID : (not empty c.id ? c.id : c.comboid)}" />
+                            <c:set var="cimg" value="${not empty c.imageURL ? c.imageURL : (not empty c.imageUrl ? c.imageUrl : c.img)}" />
+                            <div class="combo-card" data-id="${cid}" data-name="${c.name}" data-price="${c.price}">
+                                <c:choose>
+                                    <c:when test="${not empty cimg}">
+                                        <img src="${cimg}" alt="${c.name}" class="combo-img">
+                                    </c:when>
+                                    <c:when test="${st.index % 5 == 0}">
+                                        <img src="https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=200&auto=format&fit=crop" alt="${c.name}" class="combo-img">
+                                    </c:when>
+                                    <c:when test="${st.index % 5 == 1}">
+                                        <img src="https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=200&auto=format&fit=crop" alt="${c.name}" class="combo-img">
+                                    </c:when>
+                                    <c:when test="${st.index % 5 == 2}">
+                                        <img src="https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=200&auto=format&fit=crop" alt="${c.name}" class="combo-img">
+                                    </c:when>
+                                    <c:when test="${st.index % 5 == 3}">
+                                        <img src="https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=200&auto=format&fit=crop" alt="${c.name}" class="combo-img">
+                                    </c:when>
+                                    <c:otherwise>
+                                        <img src="https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=200&auto=format&fit=crop" alt="${c.name}" class="combo-img">
+                                    </c:otherwise>
+                                </c:choose>
                                 <div class="combo-info">
                                     <span class="combo-name">${c.name}</span>
                                     <span class="combo-desc">${c.description}</span>
@@ -64,12 +86,19 @@
                                     </span>
                                 </div>
                                 <div class="quantity-control">
-                                    <button type="button" class="btn-qty" onclick="changeQty('${c.id}', -1)">−</button>
-                                    <span class="qty-number" id="qty-${c.id}">0</span>
-                                    <button type="button" class="btn-qty" onclick="changeQty('${c.id}', 1)">+</button>
+                                    <button type="button" class="btn-qty" onclick="changeQty('${cid}', -1)">−</button>
+                                    <span class="qty-number" id="qty-${cid}">0</span>
+                                    <button type="button" class="btn-qty" onclick="changeQty('${cid}', 1)">+</button>
                                 </div>
                             </div>
                         </c:forEach>
+                    </c:if>
+                    <c:if test="${empty activeCombos}">
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.15); border-radius: 12px; color: #a8a29e;">
+                            <span style="font-size: 40px; display: block; margin-bottom: 12px;">🍿</span>
+                            <h4 style="color: #f5f5f4; font-size: 16px; margin-bottom: 6px;">Hiện chưa có combo bắp nước đang mở bán</h4>
+                            <p style="font-size: 13px; color: #78716c; margin-bottom: 0;">Bạn có thể tiếp tục để đến trang thanh toán vé xem phim.</p>
+                        </div>
                     </c:if>
                 </div>
             </section>
@@ -84,7 +113,7 @@
                     <span class="ticket-badge-pill">★ Cinetik Booking ★</span>
                     <h2 class="ticket-title-admit">ADMIT ONE</h2>
                     <div class="ticket-subtitle-theater">
-                        ${not empty cinema.name ? cinema.name : 'Cinetik'}
+                        ${not empty cinema.name ? cinema.name : 'Cinetik Theater'}
                     </div>
                 </div>
 
@@ -93,60 +122,45 @@
                 <%---- 2. Thông tin phim ----%>
                 <div class="ticket-info-group">
                     <span class="ticket-field-label">PHIM CHIẾU</span>
-                    <div class="ticket-movie-title">${movie.title}</div>
+                    <div class="ticket-movie-title">${not empty movie.title ? movie.title : (not empty sessionScope.currentMovieTitle ? sessionScope.currentMovieTitle : 'Suất Chiếu Cinetik')}</div>
                 </div>
 
                 <%---- 3. Suất chiếu, Ngày, Phòng ----%>
                 <div class="ticket-meta-box">
                     <div class="ticket-meta-item">
                         <span class="ticket-field-label">SUẤT</span>
-                        <div class="ticket-meta-val">
-                            ${not empty formattedTime ? formattedTime : '09:15'}
-                        </div>
+                        <div class="ticket-meta-val">${not empty formattedTime ? formattedTime : 'Hôm nay'}</div>
                     </div>
                     <div class="ticket-meta-item">
                         <span class="ticket-field-label">NGÀY</span>
-                        <div class="ticket-meta-val">
-                            ${not empty formattedDate ? formattedDate : '16/10/2026'}
-                        </div>
+                        <div class="ticket-meta-val">${not empty formattedDate ? formattedDate : '2026'}</div>
                     </div>
                     <div class="ticket-meta-item">
                         <span class="ticket-field-label">PHÒNG</span>
-                        <div class="ticket-meta-val">
-                            ${not empty roomNumber ? roomNumber : '05'}
-                        </div>
+                        <div class="ticket-meta-val">${not empty roomNumber ? roomNumber : '01'}</div>
                     </div>
                 </div>
 
                 <%---- 4. Ghế đã chọn ----%>
                 <div class="ticket-info-group">
-                    <span class="ticket-field-label">GHẾ ĐÃ CHỌN</span>
-                    <div class="ticket-seats-list">
-                        <c:choose>
-                            <c:when test="${not empty param.selectedSeats}">
-                                <c:forTokens items="${param.selectedSeats}" delims="," var="s">
-                                    <span class="ticket-seat-tag">Ghế ${s}</span>
-                                </c:forTokens>
-                            </c:when>
-                            <c:otherwise>
-                                <span class="ticket-seat-tag">Ghế F5</span>
-                                <span class="ticket-seat-tag">Ghế F6</span>
-                            </c:otherwise>
-                        </c:choose>
+                    <span class="ticket-field-label">MÃ ĐƠN HÀNG</span>
+                    <div style="font-family: monospace; font-size: 14.5px; font-weight: 700; color: #fcca46;">
+                        ${not empty bookingId ? bookingId : param.bookingId}
                     </div>
                 </div>
 
-                <%---- Danh sách bắp nước đã chọn ----%>
-                <div class="ticket-info-group" style="margin-top: 8px;">
-                    <div id="selectedCombosSummary" style="font-size: 13px; color: rgba(255, 255, 255, 0.85); background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 8px 10px;">
+                <%---- Chi tiết bắp nước đã chọn ----%>
+                <div class="ticket-info-group">
+                    <span class="ticket-field-label">BẮP NƯỚC ĐÃ CHỌN</span>
+                    <div id="selectedCombosSummary" style="font-size: 13px; line-height: 1.5; color: #e9ecef;">
                         <span style="color: rgba(255, 255, 255, 0.55);">Chưa chọn bắp nước kèm theo</span>
                     </div>
                 </div>
 
-                <%---- Chi tiết chi phí ----%>
+                <%---- Chi tiết tạm tính ----%>
                 <div class="ticket-pricing-list">
                     <div class="ticket-pricing-row">
-                        <span>Tiền vé phim:</span>
+                        <span>Tiền vé ghế:</span>
                         <strong id="seatTotalText">0đ</strong>
                     </div>
                     <div class="ticket-pricing-row">
@@ -161,19 +175,20 @@
                     <span class="ticket-total-amount" id="finalTotalDisplay">0đ</span>
                 </div>
 
-                <%---- 6. Form gửi sang Bước 3: Checkout ----%>
-                <form action="${pageContext.request.contextPath}/booking/checkout" method="POST" id="comboForm">
-                    <input type="hidden" name="showtimeId" value="${not empty param.showtimeId ? param.showtimeId : 'st-01'}">
-                    <input type="hidden" name="selectedSeats" value="${not empty param.selectedSeats ? param.selectedSeats : 'F5,F6'}">
-                    <input type="hidden" name="totalSeatPrice" id="inputSeatPrice" value="${not empty param.totalSeatPrice ? param.totalSeatPrice : '110000'}">
-                    <input type="hidden" name="selectedCombosData" id="selectedCombosInput">
+                <%---- 6. Form gửi sang Bước 3: Lưu combo & Checkout ----%>
+                <form action="${pageContext.request.contextPath}/booking/saveCombos" method="POST" id="comboForm">
+                    <input type="hidden" name="bookingId" value="${not empty bookingId ? bookingId : param.bookingId}">
+                    <input type="hidden" name="showtimeId" value="${not empty showtimeId ? showtimeId : param.showtimeId}">
+                    <input type="hidden" name="totalSeatPrice" id="inputSeatPrice" value="${not empty rawTotal ? rawTotal : (not empty booking.ticketPrice ? booking.ticketPrice : (not empty booking.totalPrice ? booking.totalPrice : 0))}">
+                    <input type="hidden" name="selectedCombos" id="selectedCombosInput">
                     <input type="hidden" name="totalComboPrice" id="inputComboPrice" value="0">
                     <input type="hidden" name="finalTotalPrice" id="inputFinalPrice">
+                    <div id="hiddenCombosInputs"></div>
 
                     <button type="submit" class="btn-ticket-submit">
                         TIẾP TỤC · THANH TOÁN →
                     </button>
-                    <a href="${pageContext.request.contextPath}/booking/seats?showtimeId=${not empty param.showtimeId ? param.showtimeId : 'st-01'}" class="btn-ticket-back">
+                    <a href="${pageContext.request.contextPath}/booking/seats?showtimeId=${not empty showtimeId ? showtimeId : param.showtimeId}" class="btn-ticket-back">
                         ← Quay lại chọn ghế
                     </a>
                 </form>
@@ -181,7 +196,7 @@
                 <%---- 7. Barcode vé ----%>
                 <div class="ticket-barcode-wrap">
                     <div class="ticket-barcode-stripes"></div>
-                    <div class="ticket-barcode-serial">№ CNK-2026-88921-VIP</div>
+                    <div class="ticket-barcode-serial">№ CNK-${not empty bookingId ? bookingId : 'BOOKING'}</div>
                 </div>
             </aside>
 
@@ -197,48 +212,7 @@
         return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
     }
 
-    // 2. TỰ ĐỘNG ĐỌC DỮ LIỆU TỪ ADMIN (LOCALSTORAGE) HOẶC DÙNG MẪU MẶC ĐỊNH
-    var container = document.getElementById('combosList');
-    if (container && !container.querySelector('.combo-card')) {
-        var defaultCombos = [
-            { id: 'CB01', name: 'Combo Solo', price: 65000, img: 'https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=200&auto=format&fit=crop', desc: '1 Bắp ngọt bơ thơm giòn (60oz) + 1 Ly nước ngọt mát lạnh tự chọn (32oz)' },
-            { id: 'CB02', name: 'Combo Đôi (Couple)', price: 89000, img: 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=200&auto=format&fit=crop', desc: '1 Bắp lớn khổng lồ (vị phô mai hoặc caramel) + 2 Ly nước ngọt mát lạnh (32oz)' },
-            { id: 'CB03', name: 'Combo Gia Đình (Family)', price: 139000, img: 'https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=200&auto=format&fit=crop', desc: '2 Hộp bắp ngọt lớn + 3 Ly nước ngọt + 1 Gói Snack khoai tây chiên giòn Lay\'s' },
-            { id: 'CB04', name: 'Combo Party 4 Bạn', price: 185000, img: 'https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=200&auto=format&fit=crop', desc: '2 Bắp khổng lồ (bơ & phô mai) + 4 Ly nước ngọt + 2 Xúc xích nướng phô mai thơm ngon' },
-            { id: 'CB05', name: 'Bắp Rang Bơ Vàng (60oz)', price: 45000, img: 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=200&auto=format&fit=crop', desc: 'Hạt ngô Mỹ nổ vàng ươm, thơm lừng vị bơ béo ngậy giòn tan' }
-        ];
-
-        var storedCombos = [];
-        try {
-            storedCombos = JSON.parse(localStorage.getItem('cinema_admin_combos'));
-        } catch (e) {}
-
-        var displayList = (storedCombos && storedCombos.length > 0) ? storedCombos : defaultCombos;
-
-        var html = '';
-        for (var i = 0; i < displayList.length; i++) {
-            var item = displayList[i];
-            var imgUrl = item.img || item.imageUrl || '';
-            var desc = item.desc || item.description || '';
-
-            html += '<div class="combo-card" data-id="' + item.id + '" data-name="' + item.name + '" data-price="' + item.price + '">'
-                  + '    <img src="' + imgUrl + '" alt="' + item.name + '" class="combo-img">'
-                  + '    <div class="combo-info">'
-                  + '        <span class="combo-name">' + item.name + '</span>'
-                  + '        <span class="combo-desc">' + desc + '</span>'
-                  + '        <span class="combo-price">' + formatVND(item.price) + '</span>'
-                  + '    </div>'
-                  + '    <div class="quantity-control">'
-                  + '        <button type="button" class="btn-qty" onclick="changeQty(\'' + item.id + '\', -1)">−</button>'
-                  + '        <span class="qty-number" id="qty-' + item.id + '">0</span>'
-                  + '        <button type="button" class="btn-qty" onclick="changeQty(\'' + item.id + '\', 1)">+</button>'
-                  + '    </div>'
-                  + '</div>';
-        }
-        container.innerHTML = html;
-    }
-
-    // 3. Khởi tạo đối tượng lưu trữ số lượng các món bắp nước
+    // 2. Khởi tạo đối tượng lưu trữ số lượng các món bắp nước
     const combosData = {};
     document.querySelectorAll('.combo-card').forEach(function(card) {
         const id = card.getAttribute('data-id');
@@ -249,8 +223,10 @@
         }
     });
 
-    const seatBasePrice = parseInt(document.getElementById('inputSeatPrice').value, 10) || 110000;
-    document.getElementById('seatTotalText').textContent = formatVND(seatBasePrice);
+    const seatBasePrice = parseInt(document.getElementById('inputSeatPrice').value, 10) || 0;
+    if (document.getElementById('seatTotalText')) {
+        document.getElementById('seatTotalText').textContent = formatVND(seatBasePrice);
+    }
 
     // 4. Hàm tăng giảm số lượng
     function changeQty(comboId, delta) {
@@ -261,7 +237,8 @@
         if (newQty > 10) newQty = 10;
 
         combosData[comboId].qty = newQty;
-        document.getElementById('qty-' + comboId).textContent = newQty;
+        const el = document.getElementById('qty-' + comboId);
+        if (el) el.textContent = newQty;
 
         updateComboSummary();
     }
@@ -269,6 +246,9 @@
     // 5. Cập nhật tổng tiền và thông tin vé
     function updateComboSummary() {
         const summaryBox = document.getElementById('selectedCombosSummary');
+        const hiddenContainer = document.getElementById('hiddenCombosInputs');
+        if (hiddenContainer) hiddenContainer.innerHTML = '';
+
         let comboTotal = 0;
         const chosenList = [];
 
@@ -278,6 +258,14 @@
                 const sub = item.qty * item.price;
                 comboTotal += sub;
                 chosenList.push(item.name + ' × ' + item.qty + ' (' + formatVND(sub) + ')');
+
+                if (hiddenContainer) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'combo_' + id;
+                    input.value = item.qty;
+                    hiddenContainer.appendChild(input);
+                }
             }
         });
 
@@ -289,12 +277,12 @@
 
         const finalTotal = seatBasePrice + comboTotal;
 
-        document.getElementById('comboTotalText').textContent = formatVND(comboTotal);
-        document.getElementById('finalTotalDisplay').textContent = formatVND(finalTotal);
+        if (document.getElementById('comboTotalText')) document.getElementById('comboTotalText').textContent = formatVND(comboTotal);
+        if (document.getElementById('finalTotalDisplay')) document.getElementById('finalTotalDisplay').textContent = formatVND(finalTotal);
 
-        document.getElementById('inputComboPrice').value = comboTotal;
-        document.getElementById('inputFinalPrice').value = finalTotal;
-        document.getElementById('selectedCombosInput').value = JSON.stringify(combosData);
+        if (document.getElementById('inputComboPrice')) document.getElementById('inputComboPrice').value = comboTotal;
+        if (document.getElementById('inputFinalPrice')) document.getElementById('inputFinalPrice').value = finalTotal;
+        if (document.getElementById('selectedCombosInput')) document.getElementById('selectedCombosInput').value = JSON.stringify(combosData);
     }
 
     // Khởi chạy tính toán ban đầu

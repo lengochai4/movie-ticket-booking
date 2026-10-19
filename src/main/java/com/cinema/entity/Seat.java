@@ -1,6 +1,7 @@
 package com.cinema.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "seats")
@@ -30,6 +31,18 @@ public class Seat {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
+    @Transient
+    private boolean available = true;
+
+    @Transient
+    private Double price;
+
+    @Transient
+    private BigDecimal extraPrice = BigDecimal.ZERO;
+
+    @Transient
+    private String roomID;
+
     public Seat() {
     }
 
@@ -40,6 +53,66 @@ public class Seat {
         this.seatType = seatType;
         this.status = status;
         this.room = room;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
+    }
+
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
+    }
+
+    public BigDecimal getExtraPrice() {
+        return extraPrice;
+    }
+
+    public void setExtraPrice(BigDecimal extraPrice) {
+        this.extraPrice = extraPrice;
+    }
+
+    public String getRoomID() {
+        if (roomID != null) return roomID;
+        return room != null ? room.getRoomID() : null;
+    }
+
+    public void setRoomID(String roomID) {
+        this.roomID = roomID;
+    }
+
+    public String getRow() {
+        return seatRow;
+    }
+
+    public void setRow(String row) {
+        this.seatRow = row;
+    }
+
+    public String getColumn() {
+        return String.valueOf(seatCol);
+    }
+
+    public void setColumn(String column) {
+        try {
+            this.seatCol = Integer.parseInt(column);
+        } catch (Exception ignored) {
+        }
+    }
+
+    public String getType() {
+        return seatType;
+    }
+
+    public void setType(String type) {
+        this.seatType = type;
     }
 
     public String getSeatID() {

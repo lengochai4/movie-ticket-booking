@@ -72,6 +72,7 @@ public class ReviewServlet extends HttpServlet {
         review.setUserName(userName);
         review.setRating(rating);
         review.setComment(comment.trim());
+        review.setHelpfulCount(0);
         review.setCreatedAt(LocalDateTime.now());
 
         reviewDAO.insert(review);

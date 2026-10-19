@@ -109,7 +109,7 @@ public class ReviewDAO {
             if (total != null && total > 0) {
                 return;
             }
-            System.out.println("💬 Khởi tạo các đánh giá phim mẫu...");
+            System.out.println(" Khởi tạo các đánh giá phim mẫu...");
 
             Review r1 = new Review(
                     "rev-001",
@@ -120,6 +120,7 @@ public class ReviewDAO {
                     "Kỹ xảo và âm thanh tại phòng chiếu IMAX của Cinetik thực sự bùng nổ! Đoạn cao trào cuối phim làm mình nổi cả da gà. Rất đáng tiền vé!"
             );
             r1.setCreatedAt(LocalDateTime.now().minusDays(1));
+            r1.setHelpfulCount(18);
             insert(r1);
 
             Review r2 = new Review(
@@ -131,6 +132,7 @@ public class ReviewDAO {
                     "Diễn xuất của dàn cast chính xuất sắc, cốt truyện có chiều sâu và nhiều cú twist bất ngờ. Điểm trừ nhẹ là nhịp phim đầu hơi chậm một chút."
             );
             r2.setCreatedAt(LocalDateTime.now().minusDays(2));
+            r2.setHelpfulCount(9);
             insert(r2);
 
             Review r3 = new Review(
@@ -142,9 +144,10 @@ public class ReviewDAO {
                     "Phim quá hay, nhạc phim đọng lại nhiều cảm xúc. Cinetik phục vụ bắp nước rất nhanh và ghế ngồi êm ái!"
             );
             r3.setCreatedAt(LocalDateTime.now().minusDays(4));
+            r3.setHelpfulCount(5);
             insert(r3);
 
-            System.out.println("✅ Đã khởi tạo đánh giá phim mẫu thành công!");
+            System.out.println(" Đã khởi tạo đánh giá phim mẫu thành công!");
         } catch (Exception e) {
             System.err.println("[ReviewDAO] Lỗi initDefaultReviews: " + e.getMessage());
         } finally {
