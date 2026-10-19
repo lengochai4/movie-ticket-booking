@@ -2,8 +2,10 @@ package com.cinema.controller.catalog;
 
 import com.cinema.dao.admin.AdminMovieDAO;
 import com.cinema.dao.admin.AdminShowtimeDAO;
+import com.cinema.dao.admin.StatisticsDAO;
 import com.cinema.dto.MovieDTO;
 import com.cinema.dto.ShowtimeDTO;
+import com.cinema.enums.BookingStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -25,6 +27,7 @@ public class AdminMovieServlet extends HttpServlet {
 
     private final AdminMovieDAO movieDAO = new AdminMovieDAO();
     private final AdminShowtimeDAO showtimeDAO = new AdminShowtimeDAO();
+    private final StatisticsDAO statisticsDAO = new StatisticsDAO();
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -218,6 +221,13 @@ public class AdminMovieServlet extends HttpServlet {
             return;
         }
         try {
+            // Không xóa phim còn đơn đặt vé chưa hủy (xóa phim sẽ xóa luôn suất chiếu của các đơn đó)
+            long openBookings = statisticsDAO.countOpenBookingsByMovie(id, BookingStatus.CANCELLED.name());
+            if (openBookings > 0) {
+                session.setAttribute("errorMessage", "Phim này còn " + openBookings
+                        + " đơn đặt vé chưa hủy, không thể xóa. Hãy hủy các đơn đó ở trang Quản lý đặt vé trước.");
+                return;
+            }
             if (movieDAO.delete(id)) {
                 System.out.println("[ADMIN MOVIE] Đã xóa phim có ID: " + id);
                 session.setAttribute("successMessage", "Đã xóa phim thành công.");

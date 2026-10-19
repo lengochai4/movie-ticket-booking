@@ -339,7 +339,7 @@
             Bạn có chắc chắn muốn xóa bộ phim <strong id="deleteMovieTitle" style="color: #fcca46;"></strong>?
         </p>
         <p style="font-size: 12px; color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 8px 12px; border-radius: 6px;">
-            * Thao tác này sẽ đồng thời xóa hoặc ẩn tất cả các suất chiếu liên quan đến bộ phim này.
+            * Các suất chiếu của phim sẽ bị xóa theo. Không thể xóa phim còn đơn đặt vé chưa hủy.
         </p>
         <form action="${pageContext.request.contextPath}/admin/movies/delete" method="POST">
             <input type="hidden" name="movieID" id="inputDeleteMovieID">

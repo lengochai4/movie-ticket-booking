@@ -262,6 +262,29 @@ public class StatisticsDAO {
         }
     }
 
+    // Số đơn đặt vé chưa hủy trên tất cả suất chiếu của 1 phim, dùng để chặn xóa phim đã bán vé
+    public long countOpenBookingsByMovie(String movieId, String cancelledStatus) {
+        String sql = "SELECT COUNT(*) FROM bookings b JOIN showtimes s ON s.showtimeid = b.showtimeid "
+                + "WHERE s.movie_id = ? AND b.bookingstatus <> ?";
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            connection = pool.getConnection();
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, movieId);
+            ps.setString(2, cancelledStatus);
+            rs = ps.executeQuery();
+            return rs.next() ? rs.getLong(1) : 0;
+        } catch (SQLException e) {
+            System.err.println("[StatisticsDAO] Lỗi countOpenBookingsByMovie: " + e.getMessage());
+            throw new RuntimeException(e);
+        } finally {
+            close(rs, ps, connection, pool);
+        }
+    }
+
     private void bindPeriod(PreparedStatement ps, String paidStatus, LocalDateTime from, LocalDateTime to)
             throws SQLException {
         ps.setString(1, paidStatus);
