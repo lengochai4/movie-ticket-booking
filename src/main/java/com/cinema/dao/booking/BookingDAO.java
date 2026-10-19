@@ -10,9 +10,9 @@ import java.util.*;
 
 public class BookingDAO {
 
-    private static final String RENDER_URL = "jdbc:postgresql://dpg-dbapchnbtjjs7382rt0g-a.singapore-postgres.render.com:5432/cinema_postgres_db?sslmode=require";
-    private static final String RENDER_USER = "cinema_postgres_db_user";
-    private static final String RENDER_PASSWORD = "ipzu40YAWB3VmNjkPpGpMoBW4zREBtDo";
+    private static final String RENDER_URL = "jdbc:postgresql://dpg-datt14ou01pc73aecb50-a.oregon-postgres.render.com:5432/email_list_db_jut9";
+    private static final String RENDER_USER = "email_list_db_jut9_user";
+    private static final String RENDER_PASSWORD = "2hI1wdwOOKNvIH77Bilyuv4COJ7mkXDB";
 
     private static final String LOCAL_URL = "jdbc:postgresql://localhost:5432/cinema_db";
     private static final String LOCAL_USER = "postgres";
