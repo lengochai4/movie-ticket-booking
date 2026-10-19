@@ -9,7 +9,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * Sổ điểm thưởng do module của Như quản lý, khóa bằng userId.
+ * Sổ điểm thưởng do module của Như quản lý, khóa bằng userID.
  * Không sửa entity User của Ân: servlet đồng bộ số điểm sang sessionScope.loginUser
  * khi object trên session có setLoyaltyPoints.
  */
@@ -20,24 +20,24 @@ public class LoyaltyAccount implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @Column(name = "user_id", length = 36)
-    private String userId;
+    @Column(name = "userid", length = 36)
+    private String userID;
 
     @Column(nullable = false)
     private Integer points;
 
-    @Column(name = "updated_at")
+    @Column(name = "updatedat")
     private LocalDateTime updatedAt;
 
     public LoyaltyAccount() {
     }
 
-    public String getUserId() {
-        return userId;
+    public String getUserID() {
+        return userID;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setUserID(String userID) {
+        this.userID = userID;
     }
 
     public Integer getPoints() {

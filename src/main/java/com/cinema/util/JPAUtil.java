@@ -3,6 +3,10 @@ package com.cinema.util;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 
+import javax.sql.DataSource;
+import java.util.HashMap;
+import java.util.Map;
+
 public class JPAUtil {
     private static EntityManagerFactory emf;
 
@@ -10,8 +14,12 @@ public class JPAUtil {
     public static EntityManagerFactory getEntityManagerFactory() {
         if (emf == null) {
             try {
-                // "CinemaPU" phải khớp với name trong persistence.xml
-                emf = Persistence.createEntityManagerFactory("CinemaPU");
+                Map<String, Object> properties = new HashMap<>();
+                DataSource dataSource = ConnectionPool.getDataSource();
+                if (dataSource != null) {
+                    properties.put("jakarta.persistence.nonJtaDataSource", dataSource);
+                }
+                emf = Persistence.createEntityManagerFactory("CinemaPU", properties);
             } catch (Exception e) {
                 System.err.println("Lỗi khởi tạo EntityManagerFactory: " + e.getMessage());
                 e.printStackTrace();

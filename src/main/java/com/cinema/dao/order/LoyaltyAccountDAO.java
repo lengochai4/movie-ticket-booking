@@ -18,7 +18,7 @@ public class LoyaltyAccountDAO {
         LoyaltyAccount account = find(em, userId);
         if (account == null) {
             account = new LoyaltyAccount();
-            account.setUserId(userId);
+            account.setUserID(userId);
             int seed = initialPoints == null ? 0 : Math.max(0, initialPoints);
             account.setPoints(seed);
             account.setUpdatedAt(LocalDateTime.now());
@@ -42,7 +42,7 @@ public class LoyaltyAccountDAO {
         LoyaltyAccount account = find(em, userId);
         if (account == null) {
             account = new LoyaltyAccount();
-            account.setUserId(userId);
+            account.setUserID(userId);
             account.setPoints(0);
             em.persist(account);
         }

@@ -137,9 +137,9 @@ public class OrderService {
     private OrderView toView(Booking booking, boolean customerCancelRule) {
         OrderView view = new OrderView();
         view.setBookingID(booking.getBookingID());
-        view.setUserId(booking.getUserId());
+        view.setUserId(booking.getUserID());
         view.setOrderCode(booking.getOrderCode());
-        view.setStatus(booking.getStatus() == null ? "" : booking.getStatus().name());
+        view.setStatus(booking.getBookingStatus() == null ? "" : booking.getBookingStatus().name());
         view.setCustomerName(booking.getCustomerName());
         view.setPhone(booking.getPhone());
         view.setEmail(booking.getEmail());
@@ -154,7 +154,7 @@ public class OrderService {
         view.setRoomName(booking.getRoomName());
         view.setQrImageUrl(QrCodeUtil.buildQrImageUrl(booking.getOrderCode()));
         int earned = booking.getPointsEarned() == null ? 0 : booking.getPointsEarned();
-        if (booking.getStatus() == BookingStatus.CANCELLED || booking.isPointsReversed()) {
+        if (booking.getBookingStatus() == BookingStatus.CANCELLED || booking.isPointsReversed()) {
             earned = 0;
         }
         view.setPointsEarned(earned);
@@ -227,11 +227,11 @@ public class OrderService {
         view.setSeatPills(pills);
         view.setSeats(pills.isEmpty() ? OrderText.blankToEmpty(booking.getSeats()) : String.join(", ", pills));
 
-        boolean openStatus = booking.getStatus() == BookingStatus.PAID || booking.getStatus() == BookingStatus.PENDING;
+        boolean openStatus = booking.getBookingStatus() == BookingStatus.PAID || booking.getBookingStatus() == BookingStatus.PENDING;
         boolean beforeShow = start == null || start.isAfter(LocalDateTime.now());
         view.setCancellable(customerCancelRule && openStatus && beforeShow);
         if (!customerCancelRule) {
-            view.setCancellable(booking.getStatus() != BookingStatus.CANCELLED);
+            view.setCancellable(booking.getBookingStatus() != BookingStatus.CANCELLED);
         }
         return view;
     }
