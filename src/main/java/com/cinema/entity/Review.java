@@ -37,6 +37,9 @@ public class Review implements Serializable {
     @Column(columnDefinition = "TEXT")
     private String comment;
 
+    @Column(name = "helpful_count")
+    private Integer helpfulCount = 0;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -50,6 +53,7 @@ public class Review implements Serializable {
         this.userName = userName;
         this.rating = rating;
         this.comment = comment;
+        this.helpfulCount = 0;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -130,6 +134,14 @@ public class Review implements Serializable {
 
     public LocalDateTime getCreatedAtDateTime() {
         return createdAt;
+    }
+
+    public int getHelpfulCount() {
+        return helpfulCount != null ? helpfulCount : 0;
+    }
+
+    public void setHelpfulCount(Integer helpfulCount) {
+        this.helpfulCount = helpfulCount != null ? helpfulCount : 0;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
