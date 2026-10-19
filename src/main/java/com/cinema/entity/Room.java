@@ -22,7 +22,8 @@ public class Room {
     @JoinColumn(name = "cinema_id", nullable = false)
     private Cinema cinema;
 
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // Không cascade: xóa phòng không được kéo theo suất chiếu (suất chiếu gắn với đơn đặt vé, doanh thu)
+    @OneToMany(mappedBy = "room", fetch = FetchType.LAZY)
     private List<Showtime> showtime;
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

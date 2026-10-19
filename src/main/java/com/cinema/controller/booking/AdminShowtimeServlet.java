@@ -187,6 +187,12 @@ public class AdminShowtimeServlet extends HttpServlet {
                 session.setAttribute("errorMessage", "Không tìm thấy phim hoặc phòng chiếu đã chọn.");
                 return showDate.toString();
             }
+            // Phòng chưa có sơ đồ ghế thì khách không chọn được ghế nào
+            if (room.getCapacity() <= 0) {
+                session.setAttribute("errorMessage", room.getName() + " (" + room.getCinemaName()
+                        + ") chưa có sơ đồ ghế. Hãy tạo sơ đồ ghế ở trang Quản lý rạp trước khi xếp suất chiếu.");
+                return showDate.toString();
+            }
 
             // 2. Giờ kết thúc = giờ bắt đầu + thời lượng phim + 15 phút dọn rạp (tự qua ngày nếu chiếu khuya)
             LocalDateTime now = LocalDateTime.now();

@@ -21,18 +21,21 @@ import java.util.UUID;
  */
 public class AdminShowtimeDAO {
 
+    // Sức chứa lấy theo số ghế thật của phòng, không dùng cột rooms.capacity (có thể lệch với sơ đồ ghế)
+    private static final String SEAT_COUNT = "(SELECT COUNT(*) FROM seats se WHERE se.room_id = r.roomid) AS capacity";
+
     // Suất chiếu kèm phim, phòng, rạp
     private static final String SELECT_SHOWTIME =
             "SELECT s.showtimeid, s.starttime, s.endtime, s.price, "
             + "m.movieid, m.title, m.duration, m.agerating, m.posterurl, "
-            + "r.roomid, r.name AS room_name, r.capacity, c.cinemaid, c.name AS cinema_name "
+            + "r.roomid, r.name AS room_name, " + SEAT_COUNT + ", c.cinemaid, c.name AS cinema_name "
             + "FROM showtimes s "
             + "JOIN movies m ON m.movieid = s.movie_id "
             + "JOIN rooms r ON r.roomid = s.room_id "
             + "JOIN cinema c ON c.cinemaid = r.cinema_id ";
 
     private static final String SELECT_ROOM =
-            "SELECT r.roomid, r.name AS room_name, r.capacity, c.cinemaid, c.name AS cinema_name "
+            "SELECT r.roomid, r.name AS room_name, " + SEAT_COUNT + ", c.cinemaid, c.name AS cinema_name "
             + "FROM rooms r JOIN cinema c ON c.cinemaid = r.cinema_id ";
 
     // Suất chiếu bắt đầu trong ngày

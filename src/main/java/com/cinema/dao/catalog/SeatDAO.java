@@ -1,10 +1,14 @@
 package com.cinema.dao.catalog;
 
+import com.cinema.dao.admin.JpaCacheSync;
 import com.cinema.entity.Room;
 import com.cinema.entity.Seat;
+import com.cinema.enums.BookingStatus;
+import com.cinema.enums.TicketStatus;
 import com.cinema.util.JPAUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -121,7 +125,15 @@ public class SeatDAO {
             // 1. Tìm phòng
             Room room = em.find(Room.class, roomId);
             if (room == null) {
-                throw new IllegalArgumentException("Không tìm thấy phòng với ID: " + roomId);
+                throw new IllegalArgumentException("Không tìm thấy phòng chiếu cần tạo sơ đồ ghế.");
+            }
+
+            // Vé lưu theo mã ghế: xóa ghế cũ khi đã có vé sẽ làm ghế đã bán hiện trống và bị bán trùng
+            long tickets = em.createQuery("SELECT COUNT(t) FROM Ticket t WHERE t.seat.room.roomID = :roomId", Long.class)
+                             .setParameter("roomId", roomId).getSingleResult();
+            if (tickets > 0) {
+                throw new IllegalStateException("Không thể tạo lại sơ đồ ghế cho \"" + room.getName() + "\": ghế của phòng đã có "
+                        + tickets + " vé được bán. Hãy dùng chức năng bảo trì từng ghế thay vì tạo lại.");
             }
 
             // 2. Xóa các ghế cũ của phòng
@@ -173,10 +185,58 @@ public class SeatDAO {
             em.merge(room);
 
             trans.commit();
+            JpaCacheSync.evictRoomsAndSeats();
             return totalCreated;
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            if (trans.isActive()) trans.rollback();
+            throw e;
         } catch (Exception e) {
             if (trans.isActive()) trans.rollback();
             System.err.println("[SeatDAO] Lỗi generateRoomSeats: " + e.getMessage());
+            throw new RuntimeException(e);
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
+     * Đổi ghế giữa ACTIVE và MAINTENANCE, trả về trạng thái mới.
+     * Không cho chuyển sang bảo trì khi ghế đã bán vé cho suất chưa chiếu xong.
+     */
+    public Seat toggleMaintenance(String seatId, String roomId) {
+        EntityManager em = JPAUtil.getEntityManager();
+        EntityTransaction trans = em.getTransaction();
+        try {
+            trans.begin();
+            Seat seat = em.find(Seat.class, seatId);
+            if (seat == null || roomId == null || !roomId.equals(seat.getRoom().getRoomID())) {
+                throw new IllegalArgumentException("Không tìm thấy ghế trong phòng đang chọn.");
+            }
+            if ("ACTIVE".equals(seat.getStatus())) {
+                long upcoming = em.createQuery("SELECT COUNT(t) FROM Ticket t WHERE t.seat.seatID = :seatId "
+                                + "AND t.ticketStatus <> :ticketCancelled AND t.booking.bookingStatus <> :bookingCancelled "
+                                + "AND t.booking.showtime.endTime > :now", Long.class)
+                        .setParameter("seatId", seatId)
+                        .setParameter("ticketCancelled", TicketStatus.CANCELLED)
+                        .setParameter("bookingCancelled", BookingStatus.CANCELLED)
+                        .setParameter("now", LocalDateTime.now())
+                        .getSingleResult();
+                if (upcoming > 0) {
+                    throw new IllegalStateException("Ghế " + seat.getSeatCode() + " đã bán " + upcoming
+                            + " vé cho suất sắp chiếu. Hãy xử lý các vé này trước khi chuyển ghế sang bảo trì.");
+                }
+                seat.setStatus("MAINTENANCE");
+            } else {
+                seat.setStatus("ACTIVE");
+            }
+            trans.commit();
+            return seat;
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            if (trans.isActive()) trans.rollback();
+            throw e;
+        } catch (Exception e) {
+            if (trans.isActive()) trans.rollback();
+            System.err.println("[SeatDAO] Lỗi toggleMaintenance: " + e.getMessage());
             throw new RuntimeException(e);
         } finally {
             em.close();

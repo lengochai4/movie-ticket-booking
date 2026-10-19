@@ -176,8 +176,9 @@ public class StatisticsDAO {
         String soldSql = "SELECT COALESCE(SUM(" + TICKETS_OF_BOOKING + "), 0) FROM bookings b "
                 + "JOIN showtimes s ON s.showtimeid = b.showtimeid "
                 + "WHERE b.bookingstatus = ? AND s.starttime >= ? AND s.starttime < ?";
-        String capacitySql = "SELECT COALESCE(SUM(r.capacity), 0) FROM showtimes s "
-                + "JOIN rooms r ON r.roomid = s.room_id "
+        // Tổng ghế = số ghế thật của phòng chiếu mỗi suất (không dùng cột rooms.capacity)
+        String capacitySql = "SELECT COUNT(se.seatid) FROM showtimes s "
+                + "JOIN seats se ON se.room_id = s.room_id "
                 + "WHERE s.starttime >= ? AND s.starttime < ?";
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = null;

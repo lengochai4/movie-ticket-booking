@@ -2,6 +2,8 @@ package com.cinema.dao.admin;
 
 import com.cinema.entity.Combo;
 import com.cinema.entity.Movie;
+import com.cinema.entity.Room;
+import com.cinema.entity.Seat;
 import com.cinema.entity.Showtime;
 import com.cinema.util.JPAUtil;
 import jakarta.persistence.EntityManagerFactory;
@@ -19,6 +21,11 @@ public class JpaCacheSync {
 
     public static void evictCombos() {
         evict(Combo.class);
+    }
+
+    // Sau khi tạo lại sơ đồ ghế bằng câu SQL native (JPA không tự biết ghế/phòng đã đổi)
+    public static void evictRoomsAndSeats() {
+        evict(Room.class, Seat.class);
     }
 
     private static void evict(Class<?>... types) {

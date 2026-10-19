@@ -5,7 +5,9 @@ import com.cinema.util.JPAUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class RoomDAO {
 
@@ -79,16 +81,72 @@ public class RoomDAO {
         }
     }
 
+    // Trùng tên phòng trong cùng một rạp. excludeRoomId: bỏ qua chính phòng đang sửa
+    public boolean existsByNameInCinema(String cinemaId, String name, String excludeRoomId) {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            return em.createQuery("SELECT COUNT(r) FROM Room r WHERE r.cinema.cinemaID = :cinemaId "
+                            + "AND LOWER(r.name) = LOWER(:name) AND r.roomID <> :excludeId", Long.class)
+                     .setParameter("cinemaId", cinemaId)
+                     .setParameter("name", name)
+                     .setParameter("excludeId", excludeRoomId != null ? excludeRoomId : "")
+                     .getSingleResult() > 0;
+        } finally {
+            em.close();
+        }
+    }
+
+    // Số ghế thực tế của từng phòng trong rạp (roomID -> số ghế), dùng làm sức chứa hiển thị
+    public Map<String, Long> countSeatsByCinema(String cinemaId) {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            Map<String, Long> counts = new HashMap<>();
+            List<Object[]> rows = em.createQuery("SELECT r.roomID, COUNT(s) FROM Room r LEFT JOIN r.seats s "
+                            + "WHERE r.cinema.cinemaID = :cinemaId GROUP BY r.roomID", Object[].class)
+                    .setParameter("cinemaId", cinemaId)
+                    .getResultList();
+            for (Object[] row : rows) {
+                counts.put((String) row[0], ((Number) row[1]).longValue());
+            }
+            return counts;
+        } catch (Exception e) {
+            System.err.println("[RoomDAO] Lỗi countSeatsByCinema: " + e.getMessage());
+            return new HashMap<>();
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
+     * Xóa phòng cùng sơ đồ ghế.
+     * Từ chối (IllegalStateException) nếu phòng còn suất chiếu hoặc ghế của phòng đã có vé.
+     */
     public void delete(String id) {
         EntityManager em = JPAUtil.getEntityManager();
         EntityTransaction trans = em.getTransaction();
         try {
             trans.begin();
             Room r = em.find(Room.class, id);
-            if (r != null) {
-                em.remove(r);
+            if (r == null) {
+                throw new IllegalArgumentException("Phòng chiếu cần xóa không còn tồn tại.");
             }
+            long showtimes = em.createQuery("SELECT COUNT(s) FROM Showtime s WHERE s.room.roomID = :id", Long.class)
+                               .setParameter("id", id).getSingleResult();
+            if (showtimes > 0) {
+                throw new IllegalStateException("Không thể xóa \"" + r.getName() + "\": phòng còn " + showtimes
+                        + " suất chiếu. Hãy xóa hoặc chuyển các suất chiếu trước.");
+            }
+            long tickets = em.createQuery("SELECT COUNT(t) FROM Ticket t WHERE t.seat.room.roomID = :id", Long.class)
+                             .setParameter("id", id).getSingleResult();
+            if (tickets > 0) {
+                throw new IllegalStateException("Không thể xóa \"" + r.getName() + "\": ghế của phòng đã có "
+                        + tickets + " vé được bán.");
+            }
+            em.remove(r);
             trans.commit();
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            if (trans.isActive()) trans.rollback();
+            throw e;
         } catch (Exception e) {
             if (trans.isActive()) trans.rollback();
             System.err.println("[RoomDAO] Lỗi delete: " + e.getMessage());

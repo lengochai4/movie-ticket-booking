@@ -1,6 +1,7 @@
 <%@ page contentType="text/html; charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <c:set var="pageTitle" value="Quản Lý Rạp & Phòng Chiếu - Cinetik Admin" scope="request"/>
 <c:set var="extraCss" value="admin-users.css" scope="request"/>
@@ -206,7 +207,8 @@
                     ➕ Thêm Cụm Rạp
                 </button>
                 <c:if test="${not empty selectedCinemaId}">
-                    <button type="button" class="btn-header-back" style="background: #25201b; border-color: #fcca46; color: #fcca46; font-weight: 700;" onclick="openAddRoomModal('${selectedCinemaId}', '${selectedCinema.name}')">
+                    <button type="button" class="btn-header-back" style="background: #25201b; border-color: #fcca46; color: #fcca46; font-weight: 700;" data-cinema-id="${selectedCinemaId}" data-cinema-name="${fn:escapeXml(selectedCinema.name)}"
+                        onclick="openAddRoomModal(this.dataset.cinemaId, this.dataset.cinemaName)">
                         🚪 Thêm Phòng Chiếu
                     </button>
                 </c:if>
@@ -216,7 +218,14 @@
         <%---- THÔNG BÁO THÀNH CÔNG NẾU CÓ ----%>
         <c:if test="${not empty successMessage}">
             <div style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; border-radius: 8px; padding: 12px 20px; font-weight: 600; text-align: center; font-size: 14px;">
-                ✅ ${successMessage}
+                ✅ <c:out value="${successMessage}"/>
+            </div>
+        </c:if>
+
+        <%---- THÔNG BÁO LỖI NẾU CÓ ----%>
+        <c:if test="${not empty errorMessage}">
+            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; border-radius: 8px; padding: 12px 20px; font-weight: 600; text-align: center; font-size: 14px;">
+                ⚠️ <c:out value="${errorMessage}"/>
             </div>
         </c:if>
 
@@ -225,7 +234,7 @@
             <div class="stat-card">
                 <div class="stat-icon total">🏛️</div>
                 <div class="stat-info">
-                    <span class="stat-value">${not empty totalCinemas ? totalCinemas : 3}</span>
+                    <span class="stat-value">${empty totalCinemas ? 0 : totalCinemas}</span>
                     <span class="stat-label">Cụm rạp chi nhánh</span>
                 </div>
             </div>
@@ -233,7 +242,7 @@
             <div class="stat-card">
                 <div class="stat-icon customer" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">🚪</div>
                 <div class="stat-info">
-                    <span class="stat-value">${not empty totalRooms ? totalRooms : 12}</span>
+                    <span class="stat-value">${empty totalRooms ? 0 : totalRooms}</span>
                     <span class="stat-label">Tổng số phòng chiếu</span>
                 </div>
             </div>
@@ -241,7 +250,7 @@
             <div class="stat-card">
                 <div class="stat-icon locked" style="background: rgba(252, 202, 70, 0.15); color: #fcca46;">💺</div>
                 <div class="stat-info">
-                    <span class="stat-value">${not empty totalSeats ? totalSeats : 960}</span>
+                    <span class="stat-value">${empty totalSeats ? 0 : totalSeats}</span>
                     <span class="stat-label">Tổng số ghế toàn hệ thống</span>
                 </div>
             </div>
@@ -249,7 +258,7 @@
             <div class="stat-card">
                 <div class="stat-icon total" style="background: rgba(34, 197, 94, 0.15); color: #4ade80;">✅</div>
                 <div class="stat-info">
-                    <span class="stat-value">${not empty activeSeats ? activeSeats : 940}</span>
+                    <span class="stat-value">${empty activeSeats ? 0 : activeSeats}</span>
                     <span class="stat-label">Ghế sẵn sàng đón khách</span>
                 </div>
             </div>
@@ -278,11 +287,13 @@
                                         <strong style="color: #fff; font-size: 15px;">${c.name}</strong>
                                         <div style="display: flex; gap: 6px;">
                                             <button type="button" class="btn-table-action edit" title="Sửa rạp"
-                                                    onclick="event.stopPropagation(); openEditCinemaModal('${c.cinemaID}', '${c.name}', '${c.address}')">
+                                                    data-id="${c.cinemaID}" data-name="${fn:escapeXml(c.name)}" data-address="${fn:escapeXml(c.address)}"
+                                                    onclick="event.stopPropagation(); openEditCinemaModal(this.dataset.id, this.dataset.name, this.dataset.address)">
                                                 ✏️
                                             </button>
                                             <button type="button" class="btn-table-action delete" title="Xóa rạp"
-                                                    onclick="event.stopPropagation(); openDeleteCinemaModal('${c.cinemaID}', '${c.name}')">
+                                                    data-id="${c.cinemaID}" data-name="${fn:escapeXml(c.name)}"
+                                                    onclick="event.stopPropagation(); openDeleteCinemaModal(this.dataset.id, this.dataset.name)">
                                                 🗑️
                                             </button>
                                         </div>
@@ -298,54 +309,10 @@
                             </c:forEach>
                         </c:when>
 
-                        <%---- KHI CHƯA NỐI DATABASE: HIỂN THỊ DỮ LIỆU MẪU ĐỂ TEST GIAO DIỆN ----%>
+                        <%---- CHƯA CÓ RẠP NÀO ----%>
                         <c:otherwise>
-                            <div class="cinema-item-card active">
-                                <div style="display: flex; justify-content: space-between;">
-                                    <strong style="color: #fff; font-size: 15px;">Cinetik Landmark 81</strong>
-                                    <div>
-                                        <button type="button" class="btn-table-action edit">✏️</button>
-                                    </div>
-                                </div>
-                                <p style="font-size: 12.5px; color: #94a3b8; margin: 6px 0 10px;">
-                                    📍 Tầng B1, TTTM Vincom Landmark 81, Bình Thạnh, TP.HCM
-                                </p>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #fcca46;">
-                                    <span>🚪 5 phòng chiếu</span>
-                                    <span>Đang chọn ●</span>
-                                </div>
-                            </div>
-
-                            <div class="cinema-item-card">
-                                <div style="display: flex; justify-content: space-between;">
-                                    <strong style="color: #fff; font-size: 15px;">Cinetik Nguyễn Du</strong>
-                                    <div>
-                                        <button type="button" class="btn-table-action edit">✏️</button>
-                                    </div>
-                                </div>
-                                <p style="font-size: 12.5px; color: #94a3b8; margin: 6px 0 10px;">
-                                    📍 116 Nguyễn Du, Phường Bến Thành, Quận 1, TP.HCM
-                                </p>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #fcca46;">
-                                    <span>🚪 4 phòng chiếu</span>
-                                    <span>Xem chi tiết ➔</span>
-                                </div>
-                            </div>
-
-                            <div class="cinema-item-card">
-                                <div style="display: flex; justify-content: space-between;">
-                                    <strong style="color: #fff; font-size: 15px;">Cinetik Crescent Mall</strong>
-                                    <div>
-                                        <button type="button" class="btn-table-action edit">✏️</button>
-                                    </div>
-                                </div>
-                                <p style="font-size: 12.5px; color: #94a3b8; margin: 6px 0 10px;">
-                                    📍 Tầng 5, TTTM Crescent Mall, Phú Mỹ Hưng, Quận 7, TP.HCM
-                                </p>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #fcca46;">
-                                    <span>🚪 3 phòng chiếu</span>
-                                    <span>Xem chi tiết ➔</span>
-                                </div>
+                            <div style="text-align: center; padding: 30px 10px; color: #a89f91; font-size: 14px;">
+                                Chưa có cụm rạp nào. Bấm "Thêm Cụm Rạp" để tạo rạp đầu tiên.
                             </div>
                         </c:otherwise>
                     </c:choose>
@@ -359,13 +326,14 @@
                         <h3 style="color: #fcca46; font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;">
                             🚪 Danh Sách Phòng: 
                             <span style="color: #fff; font-weight: 500;">
-                                ${not empty selectedCinema ? selectedCinema.name : 'Cinetik Landmark 81'}
+                                ${not empty selectedCinema ? fn:escapeXml(selectedCinema.name) : 'Chưa chọn rạp'}
                             </span>
                         </h3>
                     </div>
                     <c:if test="${not empty selectedCinemaId}">
                         <button type="button" class="btn-filter-submit" style="padding: 6px 14px; font-size: 12.5px;"
-                                onclick="openAddRoomModal('${selectedCinemaId}', '${selectedCinema.name}')">
+                                data-cinema-id="${selectedCinemaId}" data-cinema-name="${fn:escapeXml(selectedCinema.name)}"
+                        onclick="openAddRoomModal(this.dataset.cinemaId, this.dataset.cinemaName)">
                             ➕ Thêm Phòng Mới
                         </button>
                     </c:if>
@@ -378,15 +346,12 @@
                             <c:forEach var="r" items="${roomList}">
                                 <a href="${pageContext.request.contextPath}/admin/cinemas?cinemaId=${selectedCinemaId}&roomId=${r.roomID}" 
                                    class="room-badge-pill ${r.roomID == selectedRoomId ? 'active' : ''}">
-                                    🎬 ${r.name} (${r.capacity} ghế)
+                                    🎬 ${fn:escapeXml(r.name)} (${empty seatCounts[r.roomID] ? 0 : seatCounts[r.roomID]} ghế)
                                 </a>
                             </c:forEach>
                         </c:when>
                         <c:otherwise>
-                            <span class="room-badge-pill active">🎬 Phòng 01 (80 ghế)</span>
-                            <span class="room-badge-pill">🎬 Phòng 02 (80 ghế)</span>
-                            <span class="room-badge-pill">🎬 Phòng 03 (IMAX - 100 ghế)</span>
-                            <span class="room-badge-pill">🎬 Phòng VIP (40 ghế)</span>
+                            <span style="font-size: 13px; color: #a89f91;">Rạp này chưa có phòng chiếu nào.</span>
                         </c:otherwise>
                     </c:choose>
                 </div>
@@ -413,38 +378,28 @@
                                                     <span style="font-size: 11px; background: #fcca46; color: #1a1412; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px;">Đang xem sơ đồ</span>
                                                 </c:if>
                                             </td>
-                                            <td><span class="user-role-badge">${r.capacity} ghế</span></td>
+                                            <td><span class="user-role-badge">${empty seatCounts[r.roomID] ? 0 : seatCounts[r.roomID]} ghế</span></td>
                                             <td style="color: #94a3b8; font-size: 13px;">${r.cinema.name}</td>
                                             <td style="text-align: right;">
                                                 <a href="${pageContext.request.contextPath}/admin/cinemas?cinemaId=${selectedCinemaId}&roomId=${r.roomID}" 
                                                    class="btn-action edit" title="Xem & tạo ghế">💺 Sơ đồ ghế</a>
                                                 <button type="button" class="btn-action edit" title="Sửa phòng"
-                                                        onclick="openEditRoomModal('${r.roomID}', '${r.name}', '${r.capacity}', '${selectedCinemaId}')">✏️</button>
+                                                        data-id="${r.roomID}" data-name="${fn:escapeXml(r.name)}" data-cinema-id="${selectedCinemaId}" data-cinema-name="${fn:escapeXml(selectedCinema.name)}"
+                                                        onclick="openEditRoomModal(this.dataset.id, this.dataset.name, this.dataset.cinemaId, this.dataset.cinemaName)">✏️</button>
                                                 <button type="button" class="btn-action delete" title="Xóa phòng"
-                                                        onclick="openDeleteRoomModal('${r.roomID}', '${r.name}', '${selectedCinemaId}')">🗑️</button>
+                                                        data-id="${r.roomID}" data-name="${fn:escapeXml(r.name)}" data-cinema-id="${selectedCinemaId}"
+                                                        onclick="openDeleteRoomModal(this.dataset.id, this.dataset.name, this.dataset.cinemaId)">🗑️</button>
                                             </td>
                                         </tr>
                                     </c:forEach>
                                 </c:when>
                                 <c:otherwise>
                                     <tr>
-                                        <td><strong style="color: #fcca46;">Phòng 01 (Laser 2D)</strong> <span style="font-size: 11px; background: #fcca46; color: #1a1412; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px;">Đang xem sơ đồ</span></td>
-                                        <td><span class="user-role-badge">80 ghế</span></td>
-                                        <td style="color: #94a3b8; font-size: 13px;">Cinetik Landmark 81</td>
-                                        <td style="text-align: right;">
-                                            <button type="button" class="btn-action edit">💺 Sơ đồ ghế</button>
-                                            <button type="button" class="btn-action edit">✏️</button>
-                                            <button type="button" class="btn-action delete">🗑️</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong style="color: #fff;">Phòng 02 (3D)</strong></td>
-                                        <td><span class="user-role-badge">80 ghế</span></td>
-                                        <td style="color: #94a3b8; font-size: 13px;">Cinetik Landmark 81</td>
-                                        <td style="text-align: right;">
-                                            <button type="button" class="btn-action edit">💺 Sơ đồ ghế</button>
-                                            <button type="button" class="btn-action edit">✏️</button>
-                                            <button type="button" class="btn-action delete">🗑️</button>
+                                        <td colspan="4" style="text-align: center; padding: 24px 10px; color: #a89f91;">
+                                            <c:choose>
+                                                <c:when test="${not empty selectedCinemaId}">Rạp chưa có phòng chiếu. Bấm "Thêm Phòng Mới" để tạo phòng.</c:when>
+                                                <c:otherwise>Hãy tạo cụm rạp trước khi thêm phòng chiếu.</c:otherwise>
+                                            </c:choose>
                                         </td>
                                     </tr>
                                 </c:otherwise>
@@ -462,8 +417,10 @@
                     <h2 style="color: #fcca46; font-size: 20px; margin: 0 0 6px; display: flex; align-items: center; gap: 8px;">
                         💺 Sơ Đồ Ghế Ngồi: 
                         <span style="color: #fff;">
-                            ${not empty selectedRoom ? selectedRoom.name : 'Phòng 01'} 
-                            (${not empty selectedCinema ? selectedCinema.name : 'Cinetik Landmark 81'})
+                            <c:choose>
+                                <c:when test="${not empty selectedRoom}">${fn:escapeXml(selectedRoom.name)} (${fn:escapeXml(selectedCinema.name)})</c:when>
+                                <c:otherwise>Chưa chọn phòng</c:otherwise>
+                            </c:choose>
                         </span>
                     </h2>
                     <p style="margin: 0; font-size: 13px; color: #94a3b8;">
@@ -473,7 +430,8 @@
                 <div>
                     <c:if test="${not empty selectedRoomId}">
                         <button type="button" class="btn-filter-submit" style="background: linear-gradient(135deg, #f59e0b, #d97706); display: flex; align-items: center; gap: 8px; font-weight: 700; padding: 10px 20px;"
-                                onclick="openGenerateSeatsModal('${selectedRoomId}', '${selectedRoom.name}', '${selectedCinemaId}')">
+                                data-room-id="${selectedRoomId}" data-room-name="${fn:escapeXml(selectedRoom.name)}" data-cinema-id="${selectedCinemaId}"
+                                onclick="openGenerateSeatsModal(this.dataset.roomId, this.dataset.roomName, this.dataset.cinemaId)">
                             ⚡ Tạo Tự Động Sơ Đồ Ghế
                         </button>
                     </c:if>
@@ -525,6 +483,7 @@
                                 </c:if>
 
                                 <form action="${pageContext.request.contextPath}/admin/cinemas/seats/toggle" method="POST" style="margin: 0; display: inline;">
+                                    <input type="hidden" name="formToken" value="${formToken}">
                                     <input type="hidden" name="seatId" value="${s.seatID}">
                                     <input type="hidden" name="cinemaId" value="${selectedCinemaId}">
                                     <input type="hidden" name="roomId" value="${selectedRoomId}">
@@ -539,14 +498,17 @@
                         </div>
                     </c:when>
 
-                    <%---- Dữ liệu mẫu test giao diện khi phòng chưa sinh ghế ----%>
+                    <%---- Chưa có phòng, hoặc phòng chưa có sơ đồ ghế ----%>
                     <c:otherwise>
                         <div style="text-align: center; padding: 30px 10px; color: #a89f91;">
-                            <p style="font-size: 16px; margin-bottom: 16px;">Phòng này chưa được thiết lập sơ đồ ghế trong cơ sở dữ liệu.</p>
+                            <p style="font-size: 16px; margin-bottom: 16px;">
+                                ${empty selectedRoomId ? 'Chưa có phòng chiếu để hiển thị sơ đồ ghế.' : 'Phòng này chưa có sơ đồ ghế.'}
+                            </p>
                             <c:if test="${not empty selectedRoomId}">
                                 <button type="button" class="btn-filter-submit" style="padding: 10px 24px; font-weight: 700;"
-                                        onclick="openGenerateSeatsModal('${selectedRoomId}', '${selectedRoom.name}', '${selectedCinemaId}')">
-                                    ⚡ Tạo ngay 80 ghế tự động (A-H, 10 ghế/hàng)
+                                        data-room-id="${selectedRoomId}" data-room-name="${fn:escapeXml(selectedRoom.name)}" data-cinema-id="${selectedCinemaId}"
+                                onclick="openGenerateSeatsModal(this.dataset.roomId, this.dataset.roomName, this.dataset.cinemaId)">
+                                    ⚡ Tạo sơ đồ ghế tự động
                                 </button>
                             </c:if>
                         </div>
@@ -565,6 +527,7 @@
     <div style="background: #181d26; border: 1px solid rgba(252, 202, 70, 0.4); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; color: #fff;">
         <h3 id="modalCinemaTitle" style="margin-top: 0; color: #fcca46;">Thêm Cụm Rạp Mới</h3>
         <form action="${pageContext.request.contextPath}/admin/cinemas/cinema/save" method="POST">
+            <input type="hidden" name="formToken" value="${formToken}">
             <input type="hidden" name="cinemaId" id="cinemaInputId">
             
             <div style="margin-bottom: 14px;">
@@ -591,8 +554,9 @@
 <div id="modalDeleteCinema" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center;">
     <div style="background: #181d26; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 24px; max-width: 440px; width: 90%; color: #fff;">
         <h3 style="margin-top: 0; color: #f87171;">⚠️ Xác Nhận Xóa Cụm Rạp</h3>
-        <p style="font-size: 14px; color: #cbd5e1;">Bạn có chắc chắn muốn xóa cụm rạp <strong id="deleteCinemaName" style="color: #fcca46;"></strong>? Tất cả phòng chiếu và lịch chiếu của rạp này cũng sẽ bị gỡ bỏ.</p>
+        <p style="font-size: 14px; color: #cbd5e1;">Bạn có chắc chắn muốn xóa cụm rạp <strong id="deleteCinemaName" style="color: #fcca46;"></strong>? Các phòng chiếu và sơ đồ ghế của rạp sẽ bị xóa theo. Hệ thống chỉ cho xóa khi rạp không còn suất chiếu và chưa có vé nào được bán.</p>
         <form action="${pageContext.request.contextPath}/admin/cinemas/cinema/delete" method="POST">
+            <input type="hidden" name="formToken" value="${formToken}">
             <input type="hidden" name="cinemaId" id="deleteCinemaId">
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                 <button type="button" onclick="closeModal('modalDeleteCinema')" style="background: #272f3d; color: #cbd5e1; border: none; padding: 9px 18px; border-radius: 6px; cursor: pointer;">Hủy</button>
@@ -607,6 +571,7 @@
     <div style="background: #181d26; border: 1px solid rgba(252, 202, 70, 0.4); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; color: #fff;">
         <h3 id="modalRoomTitle" style="margin-top: 0; color: #fcca46;">Thêm Phòng Chiếu Mới</h3>
         <form action="${pageContext.request.contextPath}/admin/cinemas/room/save" method="POST">
+            <input type="hidden" name="formToken" value="${formToken}">
             <input type="hidden" name="roomId" id="roomInputId">
             <input type="hidden" name="cinemaId" id="roomInputCinemaId">
             
@@ -621,11 +586,9 @@
                        style="width: 100%; padding: 10px 12px; border-radius: 6px; background: #0f1217; border: 1px solid rgba(255,255,255,0.15); color: #fff; box-sizing: border-box;">
             </div>
 
-            <div style="margin-bottom: 18px;">
-                <label style="display: block; font-size: 13px; color: #cbd5e1; margin-bottom: 6px;">Sức chứa (Capacity):</label>
-                <input type="number" name="capacity" id="roomInputCapacity" value="80" min="10" max="500" required 
-                       style="width: 100%; padding: 10px 12px; border-radius: 6px; background: #0f1217; border: 1px solid rgba(255,255,255,0.15); color: #fff; box-sizing: border-box;">
-            </div>
+            <p style="font-size: 12.5px; color: #94a3b8; margin: 0 0 18px;">
+                Sức chứa của phòng bằng số ghế và được tính tự động khi tạo sơ đồ ghế.
+            </p>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
                 <button type="button" onclick="closeModal('modalRoom')" style="background: #272f3d; color: #cbd5e1; border: none; padding: 9px 18px; border-radius: 6px; cursor: pointer;">Hủy</button>
@@ -639,8 +602,9 @@
 <div id="modalDeleteRoom" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center;">
     <div style="background: #181d26; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 24px; max-width: 440px; width: 90%; color: #fff;">
         <h3 style="margin-top: 0; color: #f87171;">⚠️ Xác Nhận Xóa Phòng Chiếu</h3>
-        <p style="font-size: 14px; color: #cbd5e1;">Bạn có chắc chắn muốn xóa <strong id="deleteRoomName" style="color: #fcca46;"></strong>? Tất cả sơ đồ ghế của phòng này sẽ bị xóa theo.</p>
+        <p style="font-size: 14px; color: #cbd5e1;">Bạn có chắc chắn muốn xóa <strong id="deleteRoomName" style="color: #fcca46;"></strong>? Sơ đồ ghế của phòng sẽ bị xóa theo. Hệ thống chỉ cho xóa khi phòng không còn suất chiếu và chưa có vé nào được bán.</p>
         <form action="${pageContext.request.contextPath}/admin/cinemas/room/delete" method="POST">
+            <input type="hidden" name="formToken" value="${formToken}">
             <input type="hidden" name="roomId" id="deleteRoomId">
             <input type="hidden" name="cinemaId" id="deleteRoomCinemaId">
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
@@ -658,9 +622,11 @@
             ⚡ Tạo Tự Động Sơ Đồ Ghế
         </h3>
         <p style="font-size: 13.5px; color: #94a3b8; margin-bottom: 16px;">
-            Hệ thống sẽ tự động tính toán, tạo mới các mã ghế từ hàng A và cập nhật lại sức chứa cho phòng <strong id="genRoomName" style="color: #fcca46;"></strong>.
+            Hệ thống sẽ <strong style="color: #f87171;">xóa sơ đồ ghế cũ</strong>, tạo mới các mã ghế từ hàng A và cập nhật lại sức chứa cho phòng <strong id="genRoomName" style="color: #fcca46;"></strong>.
+            Chỉ thực hiện được khi ghế của phòng chưa có vé nào được bán.
         </p>
         <form action="${pageContext.request.contextPath}/admin/cinemas/seats/generate" method="POST">
+            <input type="hidden" name="formToken" value="${formToken}">
             <input type="hidden" name="roomId" id="genRoomId">
             <input type="hidden" name="cinemaId" id="genCinemaId">
 
@@ -700,6 +666,26 @@
 </div>
 
 <script>
+    // Mỗi form chỉ được gửi một lần: bấm liên tiếp sẽ không tạo thêm bản ghi
+    document.querySelectorAll('form[method="POST"]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            if (form.dataset.submitting) {
+                e.preventDefault();
+                return;
+            }
+            form.dataset.submitting = '1';
+            form.querySelectorAll('button[type="submit"]').forEach(function (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor = 'wait';
+            });
+        });
+    });
+    // Quay lại bằng nút Back: tải lại trang để form không bị kẹt ở trạng thái đã gửi
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) window.location.reload();
+    });
+
     function closeModal(id) {
         document.getElementById(id).style.display = 'none';
     }
@@ -732,16 +718,15 @@
         document.getElementById('roomInputCinemaId').value = cinemaId;
         document.getElementById('roomDisplayCinemaName').value = cinemaName;
         document.getElementById('roomInputName').value = '';
-        document.getElementById('roomInputCapacity').value = '80';
         document.getElementById('modalRoom').style.display = 'flex';
     }
 
-    function openEditRoomModal(id, name, capacity, cinemaId) {
+    function openEditRoomModal(id, name, cinemaId, cinemaName) {
         document.getElementById('modalRoomTitle').innerText = 'Chỉnh Sửa Phòng Chiếu';
         document.getElementById('roomInputId').value = id;
         document.getElementById('roomInputCinemaId').value = cinemaId;
+        document.getElementById('roomDisplayCinemaName').value = cinemaName;
         document.getElementById('roomInputName').value = name;
-        document.getElementById('roomInputCapacity').value = capacity;
         document.getElementById('modalRoom').style.display = 'flex';
     }
 
