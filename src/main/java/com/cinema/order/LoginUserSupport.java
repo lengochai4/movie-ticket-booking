@@ -54,6 +54,26 @@ public final class LoginUserSupport {
         return "ADMIN".equalsIgnoreCase(role) || "STAFF".equalsIgnoreCase(role);
     }
 
+    public static boolean isAdmin(Object user) {
+        String role = getRole(user);
+        return "ADMIN".equalsIgnoreCase(role);
+    }
+
+    public static boolean isStaff(Object user) {
+        String role = getRole(user);
+        return "STAFF".equalsIgnoreCase(role);
+    }
+
+    public static boolean isUser(Object user) {
+        String role = getRole(user);
+        return "USER".equalsIgnoreCase(role) || "CUSTOMER".equalsIgnoreCase(role);
+    }
+
+    public static boolean isLocked(Object user) {
+        String status = invokeString(user, "getStatus");
+        return "LOCKED".equalsIgnoreCase(status);
+    }
+
     public static Integer getLoyaltyPoints(Object user) {
         Object value = invoke(user, "getLoyaltyPoints");
         if (value instanceof Integer) {

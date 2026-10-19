@@ -13,7 +13,6 @@ import java.util.Properties;
 
 /**
  * Tiện ích gửi email qua Jakarta Mail (Angus Mail).
- * Cung cấp hàm send(to, subject, body) mà TicketMail (module của Như) và hệ thống cần.
  */
 public class MailUtil {
 

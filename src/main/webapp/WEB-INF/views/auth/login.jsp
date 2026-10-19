@@ -17,6 +17,13 @@
             </div>
         </c:if>
 
+        <%---- Thông báo khi tài khoản bị khóa từ Filter ----%>
+        <c:if test="${param.error eq 'account_locked'}">
+            <div class="auth-alert error">
+                <span>Tài khoản của bạn đã bị khóa hoặc hết phiên đăng nhập. Vui lòng liên hệ ban quản trị.</span>
+            </div>
+        </c:if>
+
         <%--- Thông báo lỗi từ Servlet nếu đăng nhập thất bại ----%>
         <c:if test="${not empty errorMessage}">
             <div class="auth-alert error">
@@ -26,6 +33,9 @@
 
         <%---- Form gửi dữ liệu sang AuthServlet bằng phương thức POST ----%>
         <form action="${pageContext.request.contextPath}/auth/login" method="POST" class="auth-form">
+            <c:if test="${not empty param.redirect}">
+                <input type="hidden" name="redirect" value="<c:out value='${param.redirect}'/>">
+            </c:if>
 
             <%---- Ô nhập email, tên đăng nhập ----%>
             <div class="form-group">

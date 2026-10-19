@@ -10,10 +10,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * Entity Đánh giá phim (Review) do Ân phụ trách.
- * Phục vụ component review-section.jsp nhúng tại movie-detail.jsp.
- */
+
 @Entity
 @Table(name = "reviews")
 public class Review implements Serializable {
