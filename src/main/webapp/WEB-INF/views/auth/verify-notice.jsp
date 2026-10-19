@@ -44,7 +44,7 @@
 
         <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
             <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer" class="btn-auth-submit" style="display: block; text-decoration: none; text-align: center;">
-                🚀 Mở Gmail Ngay
+                 Mở Gmail Ngay
             </a>
 
             <form action="${pageContext.request.contextPath}/auth/resend-verification" method="POST" style="margin: 0;">
