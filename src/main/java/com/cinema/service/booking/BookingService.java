@@ -44,4 +44,14 @@ public class BookingService {
         boolean success = bookingDAO.holdSeats(bookingID, userID, showTimeID.trim(), seatIDs, holdMinutes);
         return success ? bookingID : null;
     }
+
+    /**
+     * Xác nhận thanh toán thành công cho đơn đặt vé.
+     */
+    public boolean confirmPayment(String bookingID, String paymentID) {
+        if (bookingID == null || bookingID.trim().isEmpty()) {
+            return false;
+        }
+        return bookingDAO.confirmPayment(bookingID.trim(), paymentID != null ? paymentID : "PAY_ONLINE");
+    }
 }

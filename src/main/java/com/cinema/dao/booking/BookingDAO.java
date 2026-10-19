@@ -8,13 +8,13 @@ import java.util.*;
 
 public class BookingDAO {
 
-    private static final String RENDER_URL = "jdbc:postgresql://dpg-datt14ou01pc73aecb50-a.oregon-postgres.render.com:5432/email_list_db_jut9";
-    private static final String RENDER_USER = "email_list_db_jut9_user";
-    private static final String RENDER_PASSWORD = "2hI1wdwOOKNvIH77Bilyuv4COJ7mkXDB";
+    private static final String RENDER_URL = "jdbc:postgresql://dpg-dbapchnbtjjs7382rt0g-a.singapore-postgres.render.com:5432/cinema_postgres_db?sslmode=require";
+    private static final String RENDER_USER = "cinema_postgres_db_user";
+    private static final String RENDER_PASSWORD = "ipzu40YAWB3VmNjkPpGpMoBW4zREBtDo";
 
     private static final String LOCAL_URL = "jdbc:postgresql://localhost:5432/cinema_db";
     private static final String LOCAL_USER = "postgres";
-    private static final String LOCAL_PASSWORD = "postgres";
+    private static final String LOCAL_PASSWORD = "1234";
 
     static {
         try {
@@ -25,24 +25,18 @@ public class BookingDAO {
     }
 
     /**
-     * Mở kết nối Database linh hoạt (ưu tiên biến môi trường, sau đó đến Cloud Render và Localhost).
+     * Mở kết nối Database: Sử dụng PostgreSQL Cloud Render trực tiếp.
      */
     protected Connection getConnection() throws SQLException {
         String envUrl = System.getProperty("db.url", System.getenv("DB_URL"));
         String envUser = System.getProperty("db.user", System.getenv("DB_USER"));
         String envPassword = System.getProperty("db.password", System.getenv("DB_PASSWORD"));
 
-        if (envUrl != null && !envUrl.trim().isEmpty()) {
-            return DriverManager.getConnection(envUrl, envUser != null ? envUser : LOCAL_USER, envPassword != null ? envPassword : LOCAL_PASSWORD);
-        }
+        String url = (envUrl != null && !envUrl.trim().isEmpty()) ? envUrl : RENDER_URL;
+        String user = (envUser != null && !envUser.trim().isEmpty()) ? envUser : RENDER_USER;
+        String password = (envPassword != null) ? envPassword : RENDER_PASSWORD;
 
-        try {
-            // Thử kết nối Cloud PostgreSQL nếu khả dụng
-            return DriverManager.getConnection(RENDER_URL, RENDER_USER, RENDER_PASSWORD);
-        } catch (SQLException e) {
-            // Fallback về Localhost nếu không có mạng hoặc chạy offline
-            return DriverManager.getConnection(LOCAL_URL, LOCAL_USER, LOCAL_PASSWORD);
-        }
+        return DriverManager.getConnection(url, user, password);
     }
 
     /**
@@ -50,14 +44,14 @@ public class BookingDAO {
      */
     public void releaseExpiredBookings() {
         String updateBookingsSql =
-                "UPDATE \"Booking\" SET \"bookingStatus\" = 'CANCELLED' " +
-                "WHERE \"bookingStatus\" = 'PENDING' AND \"expiresAt\" < CURRENT_TIMESTAMP";
+                "UPDATE Booking SET bookingStatus = 'CANCELLED' " +
+                "WHERE bookingStatus = 'PENDING' AND expiresAt < CURRENT_TIMESTAMP";
 
         String updateTicketsSql =
-                "UPDATE \"Ticket\" t SET \"ticketStatus\" = 'CANCELLED' " +
-                "FROM \"Booking\" b " +
-                "WHERE t.\"bookingID\" = b.\"bookingID\" " +
-                "  AND b.\"bookingStatus\" = 'CANCELLED' AND t.\"ticketStatus\" = 'AVAILABLE'";
+                "UPDATE Ticket t SET ticketStatus = 'CANCELLED' " +
+                "FROM Booking b " +
+                "WHERE t.bookingID = b.bookingID " +
+                "  AND b.bookingStatus = 'CANCELLED' AND t.ticketStatus = 'AVAILABLE'";
 
         Connection conn = null;
         Statement stmt = null;
@@ -93,10 +87,10 @@ public class BookingDAO {
         Set<String> occupiedSeatIDs = new HashSet<>();
 
         String occupiedSql =
-                "SELECT t.\"seatID\" FROM \"Ticket\" t " +
-                "JOIN \"Booking\" b ON t.\"bookingID\" = b.\"bookingID\" " +
-                "WHERE t.\"showTimeID\" = ? AND t.\"ticketStatus\" != 'CANCELLED' " +
-                "  AND (b.\"bookingStatus\" = 'PAID' OR (b.\"bookingStatus\" = 'PENDING' AND b.\"expiresAt\" > CURRENT_TIMESTAMP))";
+                "SELECT t.seatID FROM Ticket t " +
+                "JOIN Booking b ON t.bookingID = b.bookingID " +
+                "WHERE t.showTimeID = ? AND t.ticketStatus != 'CANCELLED' " +
+                "  AND (b.bookingStatus = 'PAID' OR (b.bookingStatus = 'PENDING' AND b.expiresAt > CURRENT_TIMESTAMP))";
 
         String seatsSql =
                 "SELECT s.seatID, s.roomID, s.\"row\", s.\"column\", s.type, s.extraPrice " +
@@ -159,10 +153,10 @@ public class BookingDAO {
         releaseExpiredBookings();
 
         String checkConflictSql =
-                "SELECT t.\"seatID\" FROM \"Ticket\" t " +
-                "JOIN \"Booking\" b ON t.\"bookingID\" = b.\"bookingID\" " +
-                "WHERE t.\"showTimeID\" = ? AND t.\"ticketStatus\" != 'CANCELLED' " +
-                "  AND (b.\"bookingStatus\" = 'PAID' OR (b.\"bookingStatus\" = 'PENDING' AND b.\"expiresAt\" > CURRENT_TIMESTAMP))";
+                "SELECT t.seatID FROM Ticket t " +
+                "JOIN Booking b ON t.bookingID = b.bookingID " +
+                "WHERE t.showTimeID = ? AND t.ticketStatus != 'CANCELLED' " +
+                "  AND (b.bookingStatus = 'PAID' OR (b.bookingStatus = 'PENDING' AND b.expiresAt > CURRENT_TIMESTAMP))";
 
         String getShowtimeInfoSql =
                 "SELECT st.movieID, r.cinemaID " +
@@ -171,11 +165,11 @@ public class BookingDAO {
                 "WHERE st.showTimeID = ?";
 
         String insertBookingSql =
-                "INSERT INTO \"Booking\" (bookingID, userID, bookingStatus, createdAt, expiresAt) " +
+                "INSERT INTO Booking (bookingID, userID, bookingStatus, createdAt, expiresAt) " +
                 "VALUES (?, ?, 'PENDING', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + (CAST(? AS INTEGER) * INTERVAL '1 minute'))";
 
         String insertTicketSql =
-                "INSERT INTO \"Ticket\" (ticketID, bookingID, movieID, cinemaID, showTimeID, seatID, ticketStatus) " +
+                "INSERT INTO Ticket (ticketID, bookingID, movieID, cinemaID, showTimeID, seatID, ticketStatus) " +
                 "VALUES (?, ?, ?, ?, ?, ?, 'AVAILABLE')";
 
         Connection conn = null;
@@ -254,6 +248,27 @@ public class BookingDAO {
             return false;
         } finally {
             close(rsCheck, psCheck, rsInfo, psInfo, psBooking, psTicket, conn);
+        }
+    }
+
+    /**
+     * Xác nhận thanh toán thành công: chuyển trạng thái booking sang PAID.
+     */
+    public boolean confirmPayment(String bookingID, String paymentID) {
+        String sql = "UPDATE Booking SET bookingStatus = 'PAID', paymentID = ? WHERE bookingID = ?";
+        Connection conn = null;
+        PreparedStatement ps = null;
+        try {
+            conn = getConnection();
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, paymentID);
+            ps.setString(2, bookingID);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("[BookingDAO] Lỗi confirmPayment: " + e.getMessage());
+            return false;
+        } finally {
+            close(ps, conn);
         }
     }
 

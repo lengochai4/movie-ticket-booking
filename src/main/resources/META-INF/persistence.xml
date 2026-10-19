@@ -12,14 +12,14 @@
         <exclude-unlisted-classes>false</exclude-unlisted-classes>
 
         <properties>
-            <!-- Thông tin kết nối PostgreSQL -->
+            <!-- Thông tin kết nối PostgreSQL Cloud Render -->
             <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver" />
-            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://dpg-datt14ou01pc73aecb50-a.oregon-postgres.render.com:5432/email_list_db_jut9" />
-            <property name="jakarta.persistence.jdbc.user" value="email_list_db_jut9_user" />
-            <property name="jakarta.persistence.jdbc.password" value="2hI1wdwOOKNvIH77Bilyuv4COJ7mkXDB" />
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://dpg-dbapchnbtjjs7382rt0g-a.singapore-postgres.render.com:5432/cinema_postgres_db?sslmode=require" />
+            <property name="jakarta.persistence.jdbc.user" value="cinema_postgres_db_user" />
+            <property name="jakarta.persistence.jdbc.password" value="ipzu40YAWB3VmNjkPpGpMoBW4zREBtDo" />
 
             <!-- EclipseLink properties -->
-            <property name="eclipselink.ddl-generation" value="create-or-extend-tables"/>
+            <property name="eclipselink.ddl-generation" value="none"/>
             <!-- In câu lệnh SQL ra console để dễ debug -->
             <property name="eclipselink.logging.level.sql" value="FINE"/>
             <property name="eclipselink.logging.parameters" value="true"/>

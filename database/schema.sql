@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS "User" (
 CREATE TABLE IF NOT EXISTS Cinema (
     cinemaID VARCHAR(50) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    location VARCHAR(255) NOT NULL
+    location VARCHAR(255) NOT NULL,
+    address VARCHAR(500)
 );
 
 -- 3. Bảng Room: Phòng chiếu phim trực thuộc rạp
