@@ -113,9 +113,11 @@ public class AdminCinemaServlet extends HttpServlet {
         int totalRooms = roomDAO.findAll().size();
         long totalSeats = seatDAO.countTotalSeats();
         long activeSeats = seatDAO.countActiveSeats();
+        Map<String, Long> roomCounts = roomDAO.countRoomsByCinema();
 
         // Đẩy toàn bộ dữ liệu sang JSP
         request.setAttribute("cinemaList", cinemaList);
+        request.setAttribute("roomCounts", roomCounts);
         request.setAttribute("selectedCinema", selectedCinema);
         request.setAttribute("selectedCinemaId", selectedCinema != null ? selectedCinema.getCinemaID() : "");
 

@@ -96,6 +96,27 @@ public class RoomDAO {
         }
     }
 
+    // Số phòng hiện có của từng rạp (cinemaID -> số phòng), đếm thẳng trong DB thay vì
+    // cinema.getRooms() (danh sách cache của JPA không tự cập nhật khi thêm/xóa phòng)
+    public Map<String, Long> countRoomsByCinema() {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            Map<String, Long> counts = new HashMap<>();
+            List<Object[]> rows = em.createQuery("SELECT r.cinema.cinemaID, COUNT(r) FROM Room r "
+                            + "GROUP BY r.cinema.cinemaID", Object[].class)
+                    .getResultList();
+            for (Object[] row : rows) {
+                counts.put((String) row[0], ((Number) row[1]).longValue());
+            }
+            return counts;
+        } catch (Exception e) {
+            System.err.println("[RoomDAO] Lỗi countRoomsByCinema: " + e.getMessage());
+            return new HashMap<>();
+        } finally {
+            em.close();
+        }
+    }
+
     // Số ghế thực tế của từng phòng trong rạp (roomID -> số ghế), dùng làm sức chứa hiển thị
     public Map<String, Long> countSeatsByCinema(String cinemaId) {
         EntityManager em = JPAUtil.getEntityManager();

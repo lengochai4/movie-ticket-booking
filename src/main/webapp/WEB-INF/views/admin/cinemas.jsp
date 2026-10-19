@@ -302,7 +302,7 @@
                                         📍 ${c.address}
                                     </p>
                                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #fcca46;">
-                                        <span>🚪 ${not empty c.rooms ? c.rooms.size() : 0} phòng chiếu</span>
+                                        <span>🚪 ${empty roomCounts[c.cinemaID] ? 0 : roomCounts[c.cinemaID]} phòng chiếu</span>
                                         <span style="font-weight: 600;">Xem chi tiết ➔</span>
                                     </div>
                                 </div>
