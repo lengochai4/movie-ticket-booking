@@ -27,15 +27,15 @@ public class MailUtil {
             return;
         }
 
-        // Nếu chưa cấu hình tài khoản gửi thực tế, in log giả lập an toàn
+        // Nếu chưa cấu hình tài khoản gửi riêng qua biến môi trường, sử dụng MailUtilGmail (Port 465 SMTPS)
         if (SMTP_USER.isBlank() || SMTP_PASS.isBlank()) {
-            System.out.println("==================================================================");
-            System.out.println("📧 [MOCK EMAIL] Gửi email thành công!");
-            System.out.println("   Người nhận: " + to);
-            System.out.println("   Tiêu đề: " + subject);
-            System.out.println("   Nội dung: " + (body != null && body.length() > 150 ? body.substring(0, 150) + "..." : body));
-            System.out.println("==================================================================");
-            return;
+            try {
+                MailUtilGmail.sendMail(to, subject, body, true);
+                return;
+            } catch (Exception e) {
+                System.err.println("[MailUtil] Không thể gửi email qua MailUtilGmail: " + e.getMessage());
+                return;
+            }
         }
 
         try {
