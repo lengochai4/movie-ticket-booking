@@ -452,8 +452,8 @@
                         <p class="review-content">${r.comment}</p>
 
                         <div class="review-footer">
-                            <button type="button" class="btn-helpful" onclick="toggleHelpful(this, 12)">
-                                👍 Hữu ích (12)
+                            <button type="button" class="btn-helpful" onclick="toggleHelpful(this, ${not empty r.helpfulCount ? r.helpfulCount : 0})">
+                                👍 Hữu ích (${not empty r.helpfulCount ? r.helpfulCount : 0})
                             </button>
                         </div>
                     </div>
