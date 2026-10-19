@@ -1,9 +1,8 @@
-package com.cinema.model.entity;
+package com.cinema.entity;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 public class Payment implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -55,28 +54,5 @@ public class Payment implements Serializable {
 
     public void setPaymentDate(LocalDateTime paymentDate) {
         this.paymentDate = paymentDate;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Payment payment = (Payment) o;
-        return Objects.equals(paymentID, payment.paymentID);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(paymentID);
-    }
-
-    @Override
-    public String toString() {
-        return "Payment{" +
-                "paymentID='" + paymentID + '\'' +
-                ", type='" + type + '\'' +
-                ", amount=" + amount +
-                ", paymentDate=" + paymentDate +
-                '}';
     }
 }

@@ -47,6 +47,16 @@ public class Combo implements Serializable {
         this.status = status;
     }
 
+    public Combo(String comboID, String name, String description, BigDecimal price, String category, String imageURL, String status) {
+        this.comboID = comboID;
+        this.name = name;
+        this.description = description;
+        this.price = price;
+        this.category = category;
+        this.imageURL = imageURL;
+        this.status = status;
+    }
+
     public String getComboID() {
         return comboID;
     }

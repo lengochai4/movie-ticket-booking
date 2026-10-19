@@ -93,6 +93,13 @@
                             </div>
                         </c:forEach>
                     </c:if>
+                    <c:if test="${empty activeCombos}">
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.15); border-radius: 12px; color: #a8a29e;">
+                            <span style="font-size: 40px; display: block; margin-bottom: 12px;">🍿</span>
+                            <h4 style="color: #f5f5f4; font-size: 16px; margin-bottom: 6px;">Hiện chưa có combo bắp nước đang mở bán</h4>
+                            <p style="font-size: 13px; color: #78716c; margin-bottom: 0;">Bạn có thể tiếp tục để đến trang thanh toán vé xem phim.</p>
+                        </div>
+                    </c:if>
                 </div>
             </section>
 
@@ -172,7 +179,7 @@
                 <form action="${pageContext.request.contextPath}/booking/saveCombos" method="POST" id="comboForm">
                     <input type="hidden" name="bookingId" value="${not empty bookingId ? bookingId : param.bookingId}">
                     <input type="hidden" name="showtimeId" value="${not empty showtimeId ? showtimeId : param.showtimeId}">
-                    <input type="hidden" name="totalSeatPrice" id="inputSeatPrice" value="${not empty rawTotal ? rawTotal : 0}">
+                    <input type="hidden" name="totalSeatPrice" id="inputSeatPrice" value="${not empty rawTotal ? rawTotal : (not empty booking.ticketPrice ? booking.ticketPrice : (not empty booking.totalPrice ? booking.totalPrice : 0))}">
                     <input type="hidden" name="selectedCombos" id="selectedCombosInput">
                     <input type="hidden" name="totalComboPrice" id="inputComboPrice" value="0">
                     <input type="hidden" name="finalTotalPrice" id="inputFinalPrice">
@@ -205,48 +212,7 @@
         return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
     }
 
-    // 2. TỰ ĐỘNG ĐỌC DỮ LIỆU TỪ ADMIN (LOCALSTORAGE) HOẶC DÙNG MẪU MẶC ĐỊNH NẾU KHÔNG CÓ TỪ BACKEND
-    var container = document.getElementById('combosList');
-    if (container && !container.querySelector('.combo-card')) {
-        var defaultCombos = [
-            { id: 'CB_01', name: 'Combo Solo', price: 65000, img: 'https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=200&auto=format&fit=crop', desc: '1 Bắp ngọt bơ thơm giòn (60oz) + 1 Ly nước ngọt mát lạnh tự chọn (32oz)' },
-            { id: 'CB_02', name: 'Combo Đôi (Couple)', price: 95000, img: 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=200&auto=format&fit=crop', desc: '1 Bắp lớn khổng lồ (vị phô mai hoặc caramel) + 2 Ly nước ngọt mát lạnh (32oz)' },
-            { id: 'CB_03', name: 'Combo Gia Đình (Family)', price: 145000, img: 'https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=200&auto=format&fit=crop', desc: '2 Hộp bắp ngọt lớn + 3 Ly nước ngọt + 1 Gói Snack khoai tây chiên giòn Lay\'s' },
-            { id: 'CB_04', name: 'Nước Ngọt Siêu Lớn', price: 35000, img: 'https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=200&auto=format&fit=crop', desc: '1 Ly nước ngọt có gas mát lạnh cỡ lớn 32oz' },
-            { id: 'CB_05', name: 'Snack Khoai Tây Chiên', price: 30000, img: 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=200&auto=format&fit=crop', desc: 'Snack khoai tây giòn rụm thơm ngon ăn kèm khi xem phim' }
-        ];
-
-        var storedCombos = [];
-        try {
-            storedCombos = JSON.parse(localStorage.getItem('cinema_admin_combos'));
-        } catch (e) {}
-
-        var displayList = (storedCombos && storedCombos.length > 0) ? storedCombos : defaultCombos;
-
-        var html = '';
-        for (var i = 0; i < displayList.length; i++) {
-            var item = displayList[i];
-            var imgUrl = item.img || item.imageUrl || item.imageURL || '';
-            var desc = item.desc || item.description || '';
-
-            html += '<div class="combo-card" data-id="' + item.id + '" data-name="' + item.name + '" data-price="' + item.price + '">'
-                  + '    <img src="' + imgUrl + '" alt="' + item.name + '" class="combo-img">'
-                  + '    <div class="combo-info">'
-                  + '        <span class="combo-name">' + item.name + '</span>'
-                  + '        <span class="combo-desc">' + desc + '</span>'
-                  + '        <span class="combo-price">' + formatVND(item.price) + '</span>'
-                  + '    </div>'
-                  + '    <div class="quantity-control">'
-                  + '        <button type="button" class="btn-qty" onclick="changeQty(\'' + item.id + '\', -1)">−</button>'
-                  + '        <span class="qty-number" id="qty-' + item.id + '">0</span>'
-                  + '        <button type="button" class="btn-qty" onclick="changeQty(\'' + item.id + '\', 1)">+</button>'
-                  + '    </div>'
-                  + '</div>';
-        }
-        container.innerHTML = html;
-    }
-
-    // 3. Khởi tạo đối tượng lưu trữ số lượng các món bắp nước
+    // 2. Khởi tạo đối tượng lưu trữ số lượng các món bắp nước
     const combosData = {};
     document.querySelectorAll('.combo-card').forEach(function(card) {
         const id = card.getAttribute('data-id');

@@ -1,7 +1,7 @@
 package com.cinema.controller.booking;
 
-import com.cinema.model.entity.Combo;
-import com.cinema.model.entity.Seat;
+import com.cinema.entity.Combo;
+import com.cinema.entity.Seat;
 import com.cinema.order.LoginUserSupport;
 import com.cinema.service.booking.BookingService;
 import com.cinema.service.order.LoyaltyService;
@@ -211,6 +211,13 @@ public class BookingServlet extends HttpServlet {
             HttpSession curSession = request.getSession(true);
             curSession.setAttribute("currentBookingId", bookingId);
             curSession.setAttribute("currentShowtimeId", showtimeId);
+            @SuppressWarnings("unchecked")
+            Set<String> sessionBookings = (Set<String>) curSession.getAttribute("sessionBookings");
+            if (sessionBookings == null) {
+                sessionBookings = new HashSet<>();
+                curSession.setAttribute("sessionBookings", sessionBookings);
+            }
+            sessionBookings.add(bookingId);
 
             response.sendRedirect(request.getContextPath() + "/booking/combos?bookingId=" + bookingId);
         } else {
@@ -220,7 +227,7 @@ public class BookingServlet extends HttpServlet {
 
     /**
      * GET /booking/combos
-     * Nạp combos và bookingId, forward sang combo-selection.jsp
+     * Nạp combos, bookingId, rawTotal và forward sang combo-selection.jsp
      */
     private void handleGetCombos(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -237,10 +244,27 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
+        Map<String, Object> booking = bookingService.getBookingDetails(bookingId.trim());
+        if (booking == null || booking.isEmpty() || !isBookingOwnedByCurrentSession(request, bookingId.trim(), booking)) {
+            response.sendRedirect(request.getContextPath() + "/movies");
+            return;
+        }
+
+        String status = (String) booking.get("bookingStatus");
+        if ("PAID".equalsIgnoreCase(status)) {
+            response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId.trim());
+            return;
+        }
+
         List<Combo> comboList = bookingService.getAllCombos();
+        BigDecimal rawTotal = bookingService.getRawTotal(bookingId.trim());
+
         request.setAttribute("combos", comboList);
         request.setAttribute("comboList", comboList);
         request.setAttribute("bookingId", bookingId.trim());
+        request.setAttribute("booking", booking);
+        request.setAttribute("rawTotal", rawTotal);
+        request.setAttribute("showtimeId", booking.get("showtimeId"));
 
         request.getRequestDispatcher("/WEB-INF/views/booking/combo-selection.jsp").forward(request, response);
     }
@@ -261,6 +285,18 @@ public class BookingServlet extends HttpServlet {
 
         if (bookingId == null || bookingId.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/movies");
+            return;
+        }
+
+        Map<String, Object> booking = bookingService.getBookingDetails(bookingId.trim());
+        if (booking == null || booking.isEmpty() || !isBookingOwnedByCurrentSession(request, bookingId.trim(), booking)) {
+            response.sendRedirect(request.getContextPath() + "/movies");
+            return;
+        }
+
+        String status = (String) booking.get("bookingStatus");
+        if ("PAID".equalsIgnoreCase(status)) {
+            response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId.trim());
             return;
         }
 
@@ -307,8 +343,14 @@ public class BookingServlet extends HttpServlet {
         }
 
         Map<String, Object> bookingDetails = bookingService.getBookingDetails(bookingId.trim());
-        if (bookingDetails == null) {
+        if (bookingDetails == null || bookingDetails.isEmpty() || !isBookingOwnedByCurrentSession(request, bookingId.trim(), bookingDetails)) {
             response.sendRedirect(request.getContextPath() + "/movies");
+            return;
+        }
+
+        String status = (String) bookingDetails.get("bookingStatus");
+        if ("PAID".equalsIgnoreCase(status)) {
+            response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId.trim());
             return;
         }
 
@@ -370,6 +412,18 @@ public class BookingServlet extends HttpServlet {
 
         if (bookingId == null || bookingId.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/movies");
+            return;
+        }
+
+        Map<String, Object> bookingDetails = bookingService.getBookingDetails(bookingId.trim());
+        if (bookingDetails == null || bookingDetails.isEmpty() || !isBookingOwnedByCurrentSession(request, bookingId.trim(), bookingDetails)) {
+            response.sendRedirect(request.getContextPath() + "/movies");
+            return;
+        }
+
+        String status = (String) bookingDetails.get("bookingStatus");
+        if ("PAID".equalsIgnoreCase(status)) {
+            response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId.trim());
             return;
         }
 
@@ -593,10 +647,44 @@ public class BookingServlet extends HttpServlet {
         }
 
         Map<String, Object> bookingDetails = bookingService.getBookingDetails(bookingId.trim());
+        if (bookingDetails == null || bookingDetails.isEmpty() || !isBookingOwnedByCurrentSession(request, bookingId.trim(), bookingDetails)) {
+            response.sendRedirect(request.getContextPath() + "/movies");
+            return;
+        }
+
         request.setAttribute("bookingId", bookingId.trim());
         request.setAttribute("booking", bookingDetails);
         request.setAttribute("bookingDetails", bookingDetails);
 
         request.getRequestDispatcher("/WEB-INF/views/booking/booking-success.jsp").forward(request, response);
+    }
+
+    /**
+     * Kiểm tra xem đơn hàng có thuộc session hiện tại hoặc user đang đăng nhập hay không (chống IDOR).
+     */
+    private boolean isBookingOwnedByCurrentSession(HttpServletRequest request, String bookingId, Map<String, Object> bookingDetails) {
+        if (bookingId == null || bookingId.trim().isEmpty()) {
+            return false;
+        }
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            String currentBookingId = (String) session.getAttribute("currentBookingId");
+            if (bookingId.trim().equalsIgnoreCase(currentBookingId)) {
+                return true;
+            }
+            @SuppressWarnings("unchecked")
+            Set<String> sessionBookings = (Set<String>) session.getAttribute("sessionBookings");
+            if (sessionBookings != null && sessionBookings.contains(bookingId.trim())) {
+                return true;
+            }
+        }
+        String currentUserId = resolveUserId(request);
+        if (currentUserId != null && !currentUserId.isBlank() && bookingDetails != null) {
+            String bookingUserId = (String) bookingDetails.get("userId");
+            if (currentUserId.equals(bookingUserId)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

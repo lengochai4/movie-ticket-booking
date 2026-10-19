@@ -1,9 +1,9 @@
 package com.cinema.service.booking;
 
 import com.cinema.dao.booking.BookingDAO;
-import com.cinema.model.entity.Combo;
-import com.cinema.model.entity.Payment;
-import com.cinema.model.entity.Seat;
+import com.cinema.entity.Combo;
+import com.cinema.entity.Payment;
+import com.cinema.entity.Seat;
 import com.cinema.service.order.LoyaltyService;
 import com.cinema.util.VNPayConfig;
 import jakarta.servlet.http.HttpServletRequest;
@@ -230,7 +230,7 @@ public class BookingService {
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
 
-        cld.add(Calendar.MINUTE, 15);
+        cld.add(Calendar.MINUTE, 10);
         String vnp_ExpireDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
 

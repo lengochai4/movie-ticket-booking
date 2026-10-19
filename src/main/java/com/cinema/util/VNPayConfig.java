@@ -9,9 +9,9 @@ import java.util.Random;
 
 public class VNPayConfig {
 
-    public static final String VNP_PAY_URL = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-    public static final String VNP_TMN_CODE = "NWGUE67R";
-    public static final String VNP_HASH_SECRET = "ETJHJUGEBCXYVPFFBVMIFRCVNJCNIFMO";
+    public static final String VNP_PAY_URL = System.getProperty("VNP_PAY_URL", System.getenv().getOrDefault("VNP_PAY_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"));
+    public static final String VNP_TMN_CODE = System.getProperty("VNP_TMN_CODE", System.getenv().getOrDefault("VNP_TMN_CODE", "NWGUE67R"));
+    public static final String VNP_HASH_SECRET = System.getProperty("VNP_HASH_SECRET", System.getenv().getOrDefault("VNP_HASH_SECRET", "ETJHJUGEBCXYVPFFBVMIFRCVNJCNIFMO"));
 
     /**
      * Mã hóa dữ liệu bằng thuật toán HMAC-SHA512 trả về chuỗi Hex viết thường.
