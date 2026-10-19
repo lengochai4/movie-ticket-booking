@@ -9,13 +9,6 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * Entity Người Dùng do Ân phụ trách.
- * Đáp ứng đầy đủ các hợp đồng dữ liệu với Phương và Như:
- * - SessionScope: sessionScope.loginUser
- * - Khóa chính ID dạng String
- * - Getters: id, userId, fullName, email, phone, role, status, loyaltyPoints, createdAt
- */
 @Entity
 @Table(name = "users")
 public class User implements Serializable {
@@ -74,7 +67,6 @@ public class User implements Serializable {
         this.id = id;
     }
 
-    // Bí danh để tương thích linh hoạt với các module khác
     public String getUserId() {
         return id;
     }
@@ -128,7 +120,13 @@ public class User implements Serializable {
     }
 
     public void setRole(String role) {
-        this.role = role;
+        if (role == null) {
+            this.role = "USER";
+        } else if ("CUSTOMER".equalsIgnoreCase(role.trim())) {
+            this.role = "USER";
+        } else {
+            this.role = role.trim().toUpperCase();
+        }
     }
 
     public String getStatus() {
@@ -136,7 +134,27 @@ public class User implements Serializable {
     }
 
     public void setStatus(String status) {
-        this.status = status;
+        this.status = (status != null && !status.isBlank()) ? status.trim().toUpperCase() : "ACTIVE";
+    }
+
+    public boolean isLocked() {
+        return "LOCKED".equalsIgnoreCase(this.status);
+    }
+
+    public boolean isAdmin() {
+        return "ADMIN".equalsIgnoreCase(this.role);
+    }
+
+    public boolean isStaff() {
+        return "STAFF".equalsIgnoreCase(this.role);
+    }
+
+    public boolean isAdminOrStaff() {
+        return "ADMIN".equalsIgnoreCase(this.role) || "STAFF".equalsIgnoreCase(this.role);
+    }
+
+    public boolean isUser() {
+        return "USER".equalsIgnoreCase(this.role) || "CUSTOMER".equalsIgnoreCase(this.role);
     }
 
     public Integer getLoyaltyPoints() {

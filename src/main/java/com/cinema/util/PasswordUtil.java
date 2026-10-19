@@ -15,7 +15,7 @@ public class PasswordUtil {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
-     * Băm mật khẩu kèm muối ngẫu nhiên theo thuật toán SHA-256.
+     * Băm mật khẩu theo thuật toán SHA-256.
      * Định dạng trả về: saltHex:hashHex
      */
     public static String hash(String plainPassword) {
@@ -54,7 +54,7 @@ public class PasswordUtil {
             return true;
         }
 
-        // Trường hợp SHA-256 thô không muối
+        // Trường hợp SHA-256 thô
         String rawSha256 = computeSha256(plainPassword);
         return MessageDigest.isEqual(
                 rawSha256.getBytes(StandardCharsets.UTF_8),

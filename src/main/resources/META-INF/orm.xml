@@ -3,10 +3,6 @@
                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                  xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence/orm https://jakarta.ee/xml/ns/persistence/orm/orm_3_1.xsd"
                  version="3.1">
-    <!--
-      Đăng ký entity của Như mà không sửa persistence.xml.
-      metadata-complete=false: annotation trên class vẫn có hiệu lực.
-    -->
     <entity class="com.cinema.entity.Booking" metadata-complete="false"/>
     <entity class="com.cinema.entity.Ticket" metadata-complete="false"/>
     <entity class="com.cinema.entity.LoyaltyAccount" metadata-complete="false"/>

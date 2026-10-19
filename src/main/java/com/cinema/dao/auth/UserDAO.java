@@ -180,6 +180,21 @@ public class UserDAO {
         }
     }
 
+    public int countActiveAdmins() {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            Long count = em.createQuery(
+                    "SELECT COUNT(u) FROM User u WHERE UPPER(u.role) = 'ADMIN' AND UPPER(u.status) = 'ACTIVE'", Long.class)
+                    .getSingleResult();
+            return count != null ? count.intValue() : 0;
+        } catch (Exception e) {
+            System.err.println("[UserDAO] Lỗi countActiveAdmins: " + e.getMessage());
+            return 0;
+        } finally {
+            em.close();
+        }
+    }
+
     public boolean insert(User user) {
         if (user == null) {
             return false;
@@ -266,7 +281,7 @@ public class UserDAO {
             insert(new User("usr-user-03", "Vũ Thị Mai Chi", "maichi.vu@gmail.com", "0977889900", defaultPass, "USER", "LOCKED"));
             insert(new User("usr-user-04", "Đặng Quốc Huy", "quochuy.cinema@outlook.com", "0965432109", defaultPass, "USER", "ACTIVE"));
 
-            System.out.println("✅ Đã khởi tạo người dùng mặc định thành công!");
+            System.out.println(" Đã khởi tạo người dùng mặc định thành công!");
         } catch (Exception e) {
             System.err.println("[UserDAO] Lỗi initDefaultUsers: " + e.getMessage());
         }

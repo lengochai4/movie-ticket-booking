@@ -46,7 +46,7 @@ public class MovieDetailServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
 
-        // Tải danh sách đánh giá phim do Ân phụ trách
+        // Tải danh sách đánh giá phim 
         try {
             com.cinema.dao.review.ReviewDAO reviewDAO = new com.cinema.dao.review.ReviewDAO();
             java.util.List<com.cinema.entity.Review> reviewList = reviewDAO.findByMovieId(movie.getMovieID());

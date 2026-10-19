@@ -85,6 +85,14 @@
             <div class="stat-card">
                 <div class="stat-icon staff">🛡️</div>
                 <div class="stat-info">
+                    <span class="stat-value">${not empty staffCount ? staffCount : 0}</span>
+                    <span class="stat-label">Nhân viên (STAFF)</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon staff" style="background: rgba(252, 202, 70, 0.1); border-color: rgba(252, 202, 70, 0.3);">👑</div>
+                <div class="stat-info">
                     <span class="stat-value">${not empty adminCount ? adminCount : 0}</span>
                     <span class="stat-label">Quản trị viên (ADMIN)</span>
                 </div>
@@ -116,6 +124,7 @@
                 <select name="role" class="filter-select">
                     <option value="">-- Tất cả vai trò --</option>
                     <option value="ADMIN" ${param.role == 'ADMIN' ? 'selected' : ''}>Quản trị viên (ADMIN)</option>
+                    <option value="STAFF" ${param.role == 'STAFF' ? 'selected' : ''}>Nhân viên (STAFF)</option>
                     <option value="USER" ${param.role == 'USER' || param.role == 'CUSTOMER' ? 'selected' : ''}>Người dùng (USER)</option>
                 </select>
 
@@ -175,6 +184,7 @@
                                             <span class="badge-role ${u.role}">
                                                 <c:choose>
                                                     <c:when test="${u.role == 'ADMIN'}">👑 Quản trị</c:when>
+                                                    <c:when test="${u.role == 'STAFF'}">🛡️ Nhân viên</c:when>
                                                     <c:otherwise>👤 Người dùng</c:otherwise>
                                                 </c:choose>
                                             </span>
@@ -284,6 +294,7 @@
                     <label for="modalUserRole">Vai trò / Quyền hạn hệ thống</label>
                     <select id="modalUserRole" name="role" class="modal-input" required>
                         <option value="USER">Người dùng thành viên (USER)</option>
+                        <option value="STAFF">Nhân viên rạp (STAFF)</option>
                         <option value="ADMIN">Quản trị viên toàn hệ thống (ADMIN)</option>
                     </select>
                 </div>
