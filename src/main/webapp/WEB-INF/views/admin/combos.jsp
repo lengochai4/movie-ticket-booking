@@ -883,5 +883,26 @@ window.addEventListener('click', function(e) {
     if (e.target === comboModal) closeComboModal();
     if (e.target === deleteModal) closeDeleteComboModal();
 });
+// Tự động quét các thẻ combo trên trang Admin và đồng bộ sang localStorage cho khách đặt vé
+function syncAdminCombosToStorage() {
+    const adminCards = document.querySelectorAll('#comboGridSection .combo-admin-card');
+    const list = [];
+    adminCards.forEach((card, index) => {
+        const name = card.getAttribute('data-name');
+        const priceText = (card.querySelector('.combo-card-price-badge') || {}).textContent || '0';
+        const price = parseInt(priceText.replace(/[^\d]/g, ''), 10) || 0;
+        const img = (card.querySelector('.combo-card-image') || {}).src || '';
+        const desc = (card.querySelector('.combo-card-desc') || {}).textContent || '';
+        const status = card.getAttribute('data-status') || 'ACTIVE';
 
+        // Chỉ đưa món Đang bán (ACTIVE) sang cho khách đặt
+        if (status === 'ACTIVE' && name) {
+            list.push({ id: 'CB_ADM_' + (index + 1), name, price, img, desc });
+        }
+    });
+    if (list.length > 0) {
+        localStorage.setItem('cinema_admin_combos', JSON.stringify(list));
+    }
+}
+document.addEventListener('DOMContentLoaded', syncAdminCombosToStorage);
 </script>

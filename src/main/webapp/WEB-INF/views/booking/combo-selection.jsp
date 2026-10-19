@@ -9,7 +9,6 @@
 <main class="booking-page-container">
     <div class="booking-main-layout">
 
-
         <%---- 2. FILM REEL TICKET BANNER ----%>
         <jsp:include page="/WEB-INF/views/booking/movie-banner.jsp" />
 
@@ -50,99 +49,37 @@
                     </p>
                 </div>
 
+                <%---- KHUNG DANH SÁCH COMBO ĐỘNG ----%>
                 <div class="combos-grid" id="combosList">
-                    
-                    <%---- Combo 1: Solo ----%>
-                    <div class="combo-card" data-id="CB01" data-name="Combo Solo" data-price="65000">
-                        <img src="https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=200&auto=format&fit=crop" 
-                             alt="Combo Solo" class="combo-img">
-                        <div class="combo-info">
-                            <span class="combo-name">Combo Solo</span>
-                            <span class="combo-desc">1 Bắp ngọt bơ thơm giòn (60oz) + 1 Ly nước ngọt mát lạnh tự chọn (32oz)</span>
-                            <span class="combo-price">65.000đ</span>
-                        </div>
-                        <div class="quantity-control">
-                            <button type="button" class="btn-qty" onclick="changeQty('CB01', -1)">−</button>
-                            <span class="qty-number" id="qty-CB01">0</span>
-                            <button type="button" class="btn-qty" onclick="changeQty('CB01', 1)">+</button>
-                        </div>
-                    </div>
-
-                    <%---- Combo 2: Đôi (Couple) ----%>
-                    <div class="combo-card" data-id="CB02" data-name="Combo Đôi (Couple)" data-price="89000">
-                        <img src="https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=200&auto=format&fit=crop" 
-                             alt="Combo Đôi" class="combo-img">
-                        <div class="combo-info">
-                            <span class="combo-name">Combo Đôi (Couple)</span>
-                            <span class="combo-desc">1 Bắp lớn khổng lồ (vị phô mai hoặc caramel) + 2 Ly nước ngọt mát lạnh (32oz)</span>
-                            <span class="combo-price">89.000đ</span>
-                        </div>
-                        <div class="quantity-control">
-                            <button type="button" class="btn-qty" onclick="changeQty('CB02', -1)">−</button>
-                            <span class="qty-number" id="qty-CB02">0</span>
-                            <button type="button" class="btn-qty" onclick="changeQty('CB02', 1)">+</button>
-                        </div>
-                    </div>
-
-                    <%---- Combo 3: Gia Đình (Family) ----%>
-                    <div class="combo-card" data-id="CB03" data-name="Combo Gia Đình" data-price="139000">
-                        <img src="https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=200&auto=format&fit=crop" 
-                             alt="Combo Gia Đình" class="combo-img">
-                        <div class="combo-info">
-                            <span class="combo-name">Combo Gia Đình (Family)</span>
-                            <span class="combo-desc">2 Hộp bắp ngọt lớn + 3 Ly nước ngọt + 1 Gói Snack khoai tây chiên giòn Lay's</span>
-                            <span class="combo-price">139.000đ</span>
-                        </div>
-                        <div class="quantity-control">
-                            <button type="button" class="btn-qty" onclick="changeQty('CB03', -1)">−</button>
-                            <span class="qty-number" id="qty-CB03">0</span>
-                            <button type="button" class="btn-qty" onclick="changeQty('CB03', 1)">+</button>
-                        </div>
-                    </div>
-
-                    <%---- Combo 4: Party 4 Bạn ----%>
-                    <div class="combo-card" data-id="CB04" data-name="Combo Party 4 Bạn" data-price="185000">
-                        <img src="https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=200&auto=format&fit=crop" 
-                             alt="Combo Party" class="combo-img">
-                        <div class="combo-info">
-                            <span class="combo-name">Combo Party 4 Bạn (Friendship Box)</span>
-                            <span class="combo-desc">2 Bắp khổng lồ (bơ & phô mai) + 4 Ly nước ngọt + 2 Xúc xích nướng phô mai thơm ngon</span>
-                            <span class="combo-price">185.000đ</span>
-                        </div>
-                        <div class="quantity-control">
-                            <button type="button" class="btn-qty" onclick="changeQty('CB04', -1)">−</button>
-                            <span class="qty-number" id="qty-CB04">0</span>
-                            <button type="button" class="btn-qty" onclick="changeQty('CB04', 1)">+</button>
-                        </div>
-                    </div>
-
-                    <%---- Combo 5: Bắp Rang Bơ Vàng (60oz) ----%>
-                    <div class="combo-card" data-id="CB05" data-name="Bắp Rang Bơ Vàng (60oz)" data-price="45000">
-                        <img src="https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=200&auto=format&fit=crop" 
-                             alt="Bắp Rang Bơ" class="combo-img">
-                        <div class="combo-info">
-                            <span class="combo-name">Bắp Rang Bơ Vàng Truyền Thống (60oz)</span>
-                            <span class="combo-desc">Hạt ngô Mỹ nổ vàng ươm, thơm lừng vị bơ béo ngậy giòn tan</span>
-                            <span class="combo-price">45.000đ</span>
-                        </div>
-                        <div class="quantity-control">
-                            <button type="button" class="btn-qty" onclick="changeQty('CB05', -1)">−</button>
-                            <span class="qty-number" id="qty-CB05">0</span>
-                            <button type="button" class="btn-qty" onclick="changeQty('CB05', 1)">+</button>
-                        </div>
-                    </div>
-
+                    <%-- KHI CÓ DỮ LIỆU ĐỘNG TỪ JAVA BACKEND --%>
+                    <c:if test="${not empty comboList}">
+                        <c:forEach items="${comboList}" var="c">
+                            <div class="combo-card" data-id="${c.id}" data-name="${c.name}" data-price="${c.price}">
+                                <img src="${c.imageUrl}" alt="${c.name}" class="combo-img">
+                                <div class="combo-info">
+                                    <span class="combo-name">${c.name}</span>
+                                    <span class="combo-desc">${c.description}</span>
+                                    <span class="combo-price">
+                                        <fmt:formatNumber value="${c.price}" type="number" groupingUsed="true"/>đ
+                                    </span>
+                                </div>
+                                <div class="quantity-control">
+                                    <button type="button" class="btn-qty" onclick="changeQty('${c.id}', -1)">−</button>
+                                    <span class="qty-number" id="qty-${c.id}">0</span>
+                                    <button type="button" class="btn-qty" onclick="changeQty('${c.id}', 1)">+</button>
+                                </div>
+                            </div>
+                        </c:forEach>
+                    </c:if>
                 </div>
             </section>
 
-            <%---- CỘT PHẢI: GIỎ HÀNG TỔNG KẾT BƯỚC 2 ----%>
-            <%---- CỘT PHẢI: KHUNG VÉ XEM PHIM CỔ ĐIỂN TINH TẾ (ADMIT ONE CINEMA TICKET) ----%>
+            <%---- CỘT PHẢI: KHUNG VÉ XEM PHIM CỔ ĐIỂN (ADMIT ONE CINEMA TICKET) ----%>
             <aside class="cinema-ticket-card">
-                <%---- Hai vết cắt khuyết bán nguyệt 2 bên mép vé ----%>
                 <div class="ticket-cutout-left"></div>
                 <div class="ticket-cutout-right"></div>
 
-                <%---- 1. Header vé tinh tế ----%>
+                <%---- 1. Header vé ----%>
                 <div class="ticket-header-admit">
                     <span class="ticket-badge-pill">★ Cinetik Booking ★</span>
                     <h2 class="ticket-title-admit">ADMIT ONE</h2>
@@ -151,7 +88,6 @@
                     </div>
                 </div>
 
-                <%---- Đường đứt nét xé vé nối 2 vết cắt bán nguyệt ----%>
                 <hr class="ticket-perforation">
 
                 <%---- 2. Thông tin phim ----%>
@@ -160,7 +96,7 @@
                     <div class="ticket-movie-title">${movie.title}</div>
                 </div>
 
-                <%---- 3. Bảng Suất chiếu, Ngày, Phòng chiếu (3 cột riêng biệt) ----%>
+                <%---- 3. Suất chiếu, Ngày, Phòng ----%>
                 <div class="ticket-meta-box">
                     <div class="ticket-meta-item">
                         <span class="ticket-field-label">SUẤT</span>
@@ -182,7 +118,7 @@
                     </div>
                 </div>
 
-                <%---- 4. Ghế đã chọn từ Bước 1 ----%>
+                <%---- 4. Ghế đã chọn ----%>
                 <div class="ticket-info-group">
                     <span class="ticket-field-label">GHẾ ĐÃ CHỌN</span>
                     <div class="ticket-seats-list">
@@ -219,7 +155,7 @@
                     </div>
                 </div>
 
-                <%---- 5. Khung tổng cộng tiền thanh toán sang trọng ----%>
+                <%---- 5. Tổng thanh toán ----%>
                 <div class="ticket-total-box">
                     <span class="ticket-total-label">TỔNG CỘNG</span>
                     <span class="ticket-total-amount" id="finalTotalDisplay">0đ</span>
@@ -242,7 +178,7 @@
                     </a>
                 </form>
 
-                <%---- 7. Mã vạch Barcode & Mã số vé ----%>
+                <%---- 7. Barcode vé ----%>
                 <div class="ticket-barcode-wrap">
                     <div class="ticket-barcode-stripes"></div>
                     <div class="ticket-barcode-serial">№ CNK-2026-88921-VIP</div>
@@ -255,13 +191,54 @@
 </main>
 
 <script>
-    // Hàm định dạng tiền tệ Việt Nam thống nhất với dấu chấm ngăn cách
+    // 1. Hàm định dạng tiền tệ VNĐ
     function formatVND(n) {
         if (!n || n === 0) return '0đ';
         return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
     }
 
-    // Dữ liệu bắp nước - tự động quét từ các thẻ .combo-card trên giao diện (hỗ trợ cả dữ liệu động từ backend lẫn mẫu test)
+    // 2. TỰ ĐỘNG ĐỌC DỮ LIỆU TỪ ADMIN (LOCALSTORAGE) HOẶC DÙNG MẪU MẶC ĐỊNH
+    var container = document.getElementById('combosList');
+    if (container && !container.querySelector('.combo-card')) {
+        var defaultCombos = [
+            { id: 'CB01', name: 'Combo Solo', price: 65000, img: 'https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=200&auto=format&fit=crop', desc: '1 Bắp ngọt bơ thơm giòn (60oz) + 1 Ly nước ngọt mát lạnh tự chọn (32oz)' },
+            { id: 'CB02', name: 'Combo Đôi (Couple)', price: 89000, img: 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=200&auto=format&fit=crop', desc: '1 Bắp lớn khổng lồ (vị phô mai hoặc caramel) + 2 Ly nước ngọt mát lạnh (32oz)' },
+            { id: 'CB03', name: 'Combo Gia Đình (Family)', price: 139000, img: 'https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=200&auto=format&fit=crop', desc: '2 Hộp bắp ngọt lớn + 3 Ly nước ngọt + 1 Gói Snack khoai tây chiên giòn Lay\'s' },
+            { id: 'CB04', name: 'Combo Party 4 Bạn', price: 185000, img: 'https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=200&auto=format&fit=crop', desc: '2 Bắp khổng lồ (bơ & phô mai) + 4 Ly nước ngọt + 2 Xúc xích nướng phô mai thơm ngon' },
+            { id: 'CB05', name: 'Bắp Rang Bơ Vàng (60oz)', price: 45000, img: 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=200&auto=format&fit=crop', desc: 'Hạt ngô Mỹ nổ vàng ươm, thơm lừng vị bơ béo ngậy giòn tan' }
+        ];
+
+        var storedCombos = [];
+        try {
+            storedCombos = JSON.parse(localStorage.getItem('cinema_admin_combos'));
+        } catch (e) {}
+
+        var displayList = (storedCombos && storedCombos.length > 0) ? storedCombos : defaultCombos;
+
+        var html = '';
+        for (var i = 0; i < displayList.length; i++) {
+            var item = displayList[i];
+            var imgUrl = item.img || item.imageUrl || '';
+            var desc = item.desc || item.description || '';
+
+            html += '<div class="combo-card" data-id="' + item.id + '" data-name="' + item.name + '" data-price="' + item.price + '">'
+                  + '    <img src="' + imgUrl + '" alt="' + item.name + '" class="combo-img">'
+                  + '    <div class="combo-info">'
+                  + '        <span class="combo-name">' + item.name + '</span>'
+                  + '        <span class="combo-desc">' + desc + '</span>'
+                  + '        <span class="combo-price">' + formatVND(item.price) + '</span>'
+                  + '    </div>'
+                  + '    <div class="quantity-control">'
+                  + '        <button type="button" class="btn-qty" onclick="changeQty(\'' + item.id + '\', -1)">−</button>'
+                  + '        <span class="qty-number" id="qty-' + item.id + '">0</span>'
+                  + '        <button type="button" class="btn-qty" onclick="changeQty(\'' + item.id + '\', 1)">+</button>'
+                  + '    </div>'
+                  + '</div>';
+        }
+        container.innerHTML = html;
+    }
+
+    // 3. Khởi tạo đối tượng lưu trữ số lượng các món bắp nước
     const combosData = {};
     document.querySelectorAll('.combo-card').forEach(function(card) {
         const id = card.getAttribute('data-id');
@@ -275,6 +252,7 @@
     const seatBasePrice = parseInt(document.getElementById('inputSeatPrice').value, 10) || 110000;
     document.getElementById('seatTotalText').textContent = formatVND(seatBasePrice);
 
+    // 4. Hàm tăng giảm số lượng
     function changeQty(comboId, delta) {
         if (!combosData[comboId]) return;
 
@@ -288,6 +266,7 @@
         updateComboSummary();
     }
 
+    // 5. Cập nhật tổng tiền và thông tin vé
     function updateComboSummary() {
         const summaryBox = document.getElementById('selectedCombosSummary');
         let comboTotal = 0;
@@ -313,13 +292,12 @@
         document.getElementById('comboTotalText').textContent = formatVND(comboTotal);
         document.getElementById('finalTotalDisplay').textContent = formatVND(finalTotal);
 
-        // Gán vào form inputs
         document.getElementById('inputComboPrice').value = comboTotal;
         document.getElementById('inputFinalPrice').value = finalTotal;
         document.getElementById('selectedCombosInput').value = JSON.stringify(combosData);
     }
 
-    // Khởi tạo ban đầu
+    // Khởi chạy tính toán ban đầu
     updateComboSummary();
 </script>
 
