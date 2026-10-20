@@ -42,6 +42,11 @@
                     ⚠️ Thanh toán không thành công hoặc đơn giữ vé đã hết hạn (quá 10 phút). Vui lòng thử lại!
                 </div>
             </c:when>
+            <c:when test="${param.error eq 'vnpay_min_amount' or error eq 'vnpay_min_amount'}">
+                <div style="background: rgba(224, 49, 49, 0.18); border: 1px solid #ff6b6b; color: #ff8787; border-radius: 8px; padding: 14px 20px; margin-bottom: 24px; font-weight: 600; text-align: center; font-size: 15px;">
+                    ⚠️ Cổng thanh toán VNPay yêu cầu số tiền tối thiểu là 5.000 VNĐ. Nếu bạn dùng điểm thưởng, vui lòng dùng đủ điểm để về 0 VNĐ (nhận vé miễn phí) hoặc điều chỉnh điểm để số tiền còn lại từ 5.000 VNĐ trở lên!
+                </div>
+            </c:when>
             <c:when test="${param.error eq 'vnpay_checksum_failed' or error eq 'vnpay_checksum_failed'}">
                 <div style="background: rgba(224, 49, 49, 0.18); border: 1px solid #ff6b6b; color: #ff8787; border-radius: 8px; padding: 14px 20px; margin-bottom: 24px; font-weight: 600; text-align: center; font-size: 15px;">
                     🔒 Chữ ký bảo mật VNPay không hợp lệ (HMAC Checksum Mismatch). Giao dịch bị từ chối để bảo vệ an toàn!
@@ -120,11 +125,11 @@
                     <div class="checkout-section-block">
                         <h3>2. Sử Dụng Điểm Tích Lũy Thành Viên</h3>
                         <p style="font-size: 13px; color: #8c8275; margin: -10px 0 10px 0;">
-                            Quy đổi: <strong>1 điểm = 10.000 VNĐ</strong>. Điểm sẽ được trừ trực tiếp vào số tiền cần thanh toán.
+                            Quy đổi: <strong>1 điểm = 10.000 VNĐ</strong>. Điểm tích lũy được giảm tối đa <strong>90%</strong> tổng giá trị đơn hàng.
                             <c:choose>
                                 <c:when test="${not empty availablePoints and availablePoints > 0}">
                                     <br><span style="color: #fcca46; font-weight: 600;">
-                                        ★ Bạn hiện có: <strong>${availablePoints}</strong> điểm (Giảm tối đa <fmt:formatNumber value="${availablePoints * 10000}" type="number"/>đ)
+                                        ★ Bạn hiện có: <strong>${availablePoints}</strong> điểm. Tối đa áp dụng cho đơn này: <strong>${maxUsablePoints}</strong> điểm (Giảm tối đa <fmt:formatNumber value="${maxUsablePoints * 10000}" type="number"/>đ)
                                     </span>
                                 </c:when>
                                 <c:otherwise>
@@ -132,59 +137,63 @@
                                 </c:otherwise>
                             </c:choose>
                         </p>
-                        <div style="display: flex; gap: 12px; align-items: center; max-width: 340px;">
-                            <input type="number" 
-                                   id="pointsUsed" 
-                                   name="pointsUsed" 
-                                   class="checkout-input" 
-                                   value="${not empty pointsUsed ? pointsUsed : 0}" 
-                                   min="0"
-                                   max="${not empty availablePoints ? availablePoints : 0}"
-                                   placeholder="0 điểm">
-                            <span style="font-size: 13.5px; color: #fcca46; font-weight: 700; white-space: nowrap;">Điểm</span>
+                        <div style="display: flex; gap: 12px; align-items: center; max-width: 460px; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 180px;">
+                                <input type="number" 
+                                       id="pointsUsed" 
+                                       name="pointsUsed" 
+                                       class="checkout-input" 
+                                       value="${not empty pointsUsed ? pointsUsed : 0}" 
+                                       min="0"
+                                       max="${not empty maxUsablePoints ? maxUsablePoints : 0}"
+                                       placeholder="0 điểm">
+                                <span style="font-size: 13.5px; color: #fcca46; font-weight: 700; white-space: nowrap;">Điểm</span>
+                            </div>
+                            <c:if test="${not empty maxUsablePoints and maxUsablePoints > 0}">
+                                <button type="button" id="btnApplyMaxPoints" style="background: rgba(252, 202, 70, 0.15); border: 1px solid #fcca46; color: #fcca46; border-radius: 8px; padding: 10px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+                                    ⚡ Dùng tối đa (${maxUsablePoints} điểm ~ 90%)
+                                </button>
+                            </c:if>
+                        </div>
+                        <div id="vnpayMinWarning" style="display: none; margin-top: 10px; font-size: 12.5px; color: #ff922b; background: rgba(255, 146, 43, 0.12); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255, 146, 43, 0.3);">
+                            ⚠️ Điểm thưởng được áp dụng tối đa 90% giá trị đơn hàng (tối đa <strong>${maxUsablePoints} điểm</strong>) để đảm bảo số tiền thanh toán từ 5.000đ qua VNPay.
                         </div>
                     </div>
 
-                    <%---- 3. PHƯƠNG THỨC THANH TOÁN (VNPAY, MOMO, CASH) ----%>
+                    <%---- 3. PHƯƠNG THỨC THANH TOÁN ----%>
                     <div class="checkout-section-block">
-                        <h3>3. Chọn Phương Thức Thanh Toán</h3>
+                        <h3>3. Phương Thức Thanh Toán</h3>
                         
-                        <div class="payment-methods-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;">
-                            <%---- VNPAY ----%>
-                            <label class="payment-method-card selected" id="card-vnpay" style="background: #25201b; border: 2px solid #fcca46; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease;">
-                                <input type="radio" name="paymentType" value="VNPAY" checked style="accent-color: #fcca46; width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                                <div style="width: 44px; height: 44px; background: #ffffff; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 3px 8px rgba(0,0,0,0.35);">
-                                    <span style="font-family: 'Arial Black', sans-serif; font-size: 15px; font-weight: 900; color: #005baa; line-height: 1; letter-spacing: 0.5px;">VN</span>
-                                    <span style="font-family: 'Arial Black', sans-serif; font-size: 13px; font-weight: 900; color: #e11b22; line-height: 1; letter-spacing: 0.5px; margin-top: 2px;">PAY</span>
+                        <div class="payment-methods-grid" style="display: grid; grid-template-columns: 1fr; gap: 14px;">
+                            <%---- THẺ 100% ĐIỂM THƯỞNG (HIỆN KHI 0 ĐỒNG) ----%>
+                            <div id="card-points-free" style="display: none; background: rgba(105, 219, 124, 0.12); border: 2px solid #69db7c; border-radius: 12px; padding: 16px 20px; align-items: center; gap: 16px;">
+                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #69db7c, #2f9e44); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; box-shadow: 0 3px 10px rgba(47, 158, 68, 0.35);">
+                                    🎁
                                 </div>
-                                <div style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                                    <span style="font-size: 14.5px; font-weight: 700; color: #ffffff;">VNPAY QR</span>
-                                    <span style="font-size: 12px; color: #a89f91;">Quét mã QR & ATM Sandbox</span>
+                                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-size: 15px; font-weight: 700; color: #ffffff;">Thanh toán 100% bằng Điểm thưởng</span>
+                                        <span style="background: rgba(105, 219, 124, 0.2); color: #69db7c; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(105, 219, 124, 0.4);">Miễn phí 0 VNĐ</span>
+                                    </div>
+                                    <span style="font-size: 12.5px; color: #d0ebff;">
+                                        Hóa đơn được thanh toán trọn vẹn bằng điểm tích lũy. Hệ thống sẽ cấp vé điện tử ngay mà không cần chuyển tới VNPay.
+                                    </span>
                                 </div>
-                            </label>
+                            </div>
 
-                            <%---- MOMO ----%>
-                            <label class="payment-method-card" id="card-momo" style="background: #191617; border: 2px solid #3c3733; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease;">
-                                <input type="radio" name="paymentType" value="MOMO" style="accent-color: #d82d8b; width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                                <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #d82d8b, #a50064); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 3px 8px rgba(165,0,100,0.35);">
-                                    <span style="font-family: sans-serif; font-size: 15px; font-weight: 900; color: #ffffff;">mo</span>
-                                    <span style="font-family: sans-serif; font-size: 15px; font-weight: 900; color: #ffffff;">mo</span>
+                            <%---- VNPAY (HIỆN KHI TIỀN > 0) ----%>
+                            <label class="payment-method-card selected" id="card-vnpay" style="background: #25201b; border: 2px solid #fcca46; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s ease;">
+                                <input type="radio" name="paymentType" value="VNPAY" checked style="accent-color: #fcca46; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;">
+                                <div style="width: 48px; height: 48px; background: #ffffff; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 3px 8px rgba(0,0,0,0.35);">
+                                    <span style="font-family: 'Arial Black', sans-serif; font-size: 16px; font-weight: 900; color: #005baa; line-height: 1; letter-spacing: 0.5px;">VN</span>
+                                    <span style="font-family: 'Arial Black', sans-serif; font-size: 14px; font-weight: 900; color: #e11b22; line-height: 1; letter-spacing: 0.5px; margin-top: 2px;">PAY</span>
                                 </div>
-                                <div style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                                    <span style="font-size: 14.5px; font-weight: 700; color: #ffffff;">Ví MoMo</span>
-                                    <span style="font-size: 12px; color: #a89f91;">Thanh toán tức thì</span>
-                                </div>
-                            </label>
-
-                            <%---- CASH ----%>
-                            <label class="payment-method-card" id="card-cash" style="background: #191617; border: 2px solid #3c3733; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease;">
-                                <input type="radio" name="paymentType" value="CASH" style="accent-color: #69db7c; width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                                <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #2b8a3e, #1b5e20); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 3px 8px rgba(0,0,0,0.35); font-size: 20px;">
-                                    💵
-                                </div>
-                                <div style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                                    <span style="font-size: 14.5px; font-weight: 700; color: #ffffff;">Tiền mặt</span>
-                                    <span style="font-size: 12px; color: #a89f91;">Thanh toán tại quầy</span>
+                                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-size: 15px; font-weight: 700; color: #ffffff;">Cổng thanh toán điện tử VNPAY</span>
+                                        <span style="background: rgba(252, 202, 70, 0.15); color: #fcca46; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(252, 202, 70, 0.3);">Bảo mật & Tức thì</span>
+                                    </div>
+                                    <span style="font-size: 12.5px; color: #a89f91;">Hỗ trợ ứng dụng ngân hàng quét VNPAY-QR, Thẻ ATM nội địa / Internet Banking và Thẻ quốc tế Visa/Mastercard</span>
                                 </div>
                             </label>
                         </div>
@@ -200,7 +209,7 @@
                     </div>
 
                     <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 8px;">
-                        <button type="submit" class="btn-proceed" style="font-size: 15px; padding: 14px 16px;">
+                        <button type="submit" id="btnSubmitLeft" class="btn-proceed" style="font-size: 15px; padding: 14px 16px;">
                             🔒 Xác Nhận & Thanh Toán Ngay
                         </button>
                         <a href="${pageContext.request.contextPath}/booking/combos?bookingId=${bookingId}" class="btn-back-step">
@@ -264,7 +273,7 @@
                         </div>
                     </c:if>
                     <div style="display: flex; justify-content: space-between; font-size: 13px; color: #69db7c; margin-top: 2px;">
-                        <span>Giảm trừ điểm:</span>
+                        <span>Giảm trừ điểm (tối đa 90%):</span>
                         <span id="discountDisplay">-<fmt:formatNumber value="${pointsUsed * 10000}" type="number"/>đ</span>
                     </div>
                 </div>
@@ -285,7 +294,7 @@
                 </div>
 
                 <div style="margin-top: 14px;">
-                    <button type="submit" form="checkoutForm" class="btn-ticket-submit">
+                    <button type="submit" form="checkoutForm" id="btnSubmitRight" class="btn-ticket-submit">
                         🔒 XÁC NHẬN & THANH TOÁN
                     </button>
                     <a href="${pageContext.request.contextPath}/booking/combos?bookingId=${bookingId}" class="btn-ticket-back">
@@ -305,72 +314,236 @@
     </div>
 </main>
 
+<%---- MODAL XÁC NHẬN TRỪ ĐIỂM KHI ĐƠN HÀNG 0 ĐỒNG ----%>
+<div id="confirmPointsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.78); backdrop-filter: blur(5px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #1e1915; border: 2px solid #fcca46; border-radius: 16px; max-width: 480px; width: 100%; padding: 28px; box-shadow: 0 12px 36px rgba(0,0,0,0.6); position: relative;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #fcca46, #d48806); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 6px 16px rgba(252, 202, 70, 0.4); margin-bottom: 12px;">
+                🎁
+            </div>
+            <h3 style="color: #ffffff; font-size: 20px; font-weight: 800; margin: 0 0 6px 0;">Xác Nhận Đổi Điểm Thưởng</h3>
+            <p style="color: #a89f91; font-size: 13.5px; margin: 0; line-height: 1.5;">
+                Hóa đơn của bạn được thanh toán 100% bằng điểm thưởng (<strong>0 VNĐ</strong>). Bạn không cần thực hiện thanh toán qua VNPay!
+            </p>
+        </div>
+
+        <div style="background: #14110e; border: 1px solid #3d352e; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: #b5a995;">
+                <span>Tổng giá trị đơn hàng:</span>
+                <span style="font-weight: 700; color: #ffffff;" id="modalRawTotal">0đ</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: #b5a995;">
+                <span>Số điểm sử dụng:</span>
+                <span style="font-weight: 700; color: #fcca46;" id="modalPointsUsed">0 điểm</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13.5px; color: #b5a995;">
+                <span>Số tiền giảm trừ:</span>
+                <span style="font-weight: 700; color: #69db7c;" id="modalDiscount">0đ</span>
+            </div>
+            <hr style="border: 0; border-top: 1px dashed #3d352e; margin: 4px 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 14.5px; align-items: center;">
+                <span style="font-weight: 700; color: #ffffff;">Số tiền cần thanh toán:</span>
+                <span style="font-weight: 900; color: #69db7c; font-size: 18px; background: rgba(105, 219, 124, 0.15); padding: 2px 10px; border-radius: 6px;">0 VNĐ (Miễn phí)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: #8c8275;">
+                <span>Điểm tích lũy còn lại sau trừ:</span>
+                <span style="font-weight: 600; color: #fcca46;" id="modalRemainingPoints">0 điểm</span>
+            </div>
+        </div>
+
+        <div style="background: rgba(252, 202, 70, 0.08); border-left: 3px solid #fcca46; padding: 10px 14px; border-radius: 4px; font-size: 12px; color: #d0c7b7; margin-bottom: 22px; line-height: 1.5;">
+            ★ Khi xác nhận, hệ thống sẽ tự động trừ số điểm trên tài khoản của bạn và lập tức chuyển đến trang vé điện tử thành công!
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px;">
+            <button type="button" id="btnCancelModal" style="background: #2b2520; color: #d0c7b7; border: 1px solid #4a4037; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+                Quay lại
+            </button>
+            <button type="button" id="btnConfirmDeduct" style="background: linear-gradient(135deg, #2b8a3e, #237032); color: #ffffff; border: 0; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(43,138,62,0.4); transition: all 0.2s ease;">
+                ✓ Xác Nhận Trừ Điểm
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+    const checkoutForm = document.getElementById('checkoutForm');
     const cardVnpay = document.getElementById('card-vnpay');
-    const cardMomo = document.getElementById('card-momo');
-    const cardCash = document.getElementById('card-cash');
+    const cardPointsFree = document.getElementById('card-points-free');
+    const pointsInput = document.getElementById('pointsUsed');
+    const btnApplyMaxPoints = document.getElementById('btnApplyMaxPoints');
+    const btnSubmitLeft = document.getElementById('btnSubmitLeft');
+    const btnSubmitRight = document.getElementById('btnSubmitRight');
+    const finalPriceEl = document.getElementById('checkoutFinalPrice');
+    const discountEl = document.getElementById('discountDisplay');
+    const vnpayMinWarning = document.getElementById('vnpayMinWarning');
+    const vnpayMinAmountText = document.getElementById('vnpayMinAmountText');
+
+    // Modal elements
+    const modal = document.getElementById('confirmPointsModal');
+    const modalRawTotal = document.getElementById('modalRawTotal');
+    const modalPointsUsed = document.getElementById('modalPointsUsed');
+    const modalDiscount = document.getElementById('modalDiscount');
+    const modalRemainingPoints = document.getElementById('modalRemainingPoints');
+    const btnCancelModal = document.getElementById('btnCancelModal');
+    const btnConfirmDeduct = document.getElementById('btnConfirmDeduct');
+
+    const rawTotal = ${not empty rawTotal ? rawTotal : 0};
+    const availablePoints = ${not empty availablePoints ? availablePoints : 0};
+    const maxUsablePoints = ${not empty maxUsablePoints ? maxUsablePoints : (not empty availablePoints ? availablePoints : 0)};
+
+    let isZeroAmountConfirmed = false;
 
     function selectPaymentMethod(method) {
-        [cardVnpay, cardMomo, cardCash].forEach(c => {
-            if (c) {
-                c.classList.remove('selected');
-                c.style.borderColor = '#3c3733';
-                c.style.background = '#191617';
-                const r = c.querySelector('input[type="radio"]');
-                if (r) r.checked = false;
-            }
-        });
-
-        if (method === 'VNPAY' && cardVnpay) {
+        if (cardVnpay) {
             cardVnpay.classList.add('selected');
             cardVnpay.style.borderColor = '#fcca46';
             cardVnpay.style.background = '#25201b';
-            cardVnpay.querySelector('input[type="radio"]').checked = true;
-        } else if (method === 'MOMO' && cardMomo) {
-            cardMomo.classList.add('selected');
-            cardMomo.style.borderColor = '#d82d8b';
-            cardMomo.style.background = '#261620';
-            cardMomo.querySelector('input[type="radio"]').checked = true;
-        } else if (method === 'CASH' && cardCash) {
-            cardCash.classList.add('selected');
-            cardCash.style.borderColor = '#69db7c';
-            cardCash.style.background = '#162319';
-            cardCash.querySelector('input[type="radio"]').checked = true;
+            const r = cardVnpay.querySelector('input[type="radio"]');
+            if (r) r.checked = true;
         }
     }
 
     if (cardVnpay) cardVnpay.addEventListener('click', () => selectPaymentMethod('VNPAY'));
-    if (cardMomo) cardMomo.addEventListener('click', () => selectPaymentMethod('MOMO'));
-    if (cardCash) cardCash.addEventListener('click', () => selectPaymentMethod('CASH'));
 
-    // Tính toán lại giá tiền tức thời khi thay đổi số điểm tích lũy
-    const pointsInput = document.getElementById('pointsUsed');
-    const rawTotal = ${not empty rawTotal ? rawTotal : 0};
-    const maxAvailablePoints = ${not empty availablePoints ? availablePoints : 0};
-    const finalPriceEl = document.getElementById('checkoutFinalPrice');
-    const discountEl = document.getElementById('discountDisplay');
+    function updatePricing() {
+        let pts = parseInt(pointsInput ? pointsInput.value : 0, 10);
+        if (isNaN(pts) || pts < 0) pts = 0;
+        if (pts > maxUsablePoints) {
+            pts = maxUsablePoints;
+            if (pointsInput) pointsInput.value = pts;
+            if (vnpayMinWarning) vnpayMinWarning.style.display = 'block';
+        } else {
+            if (vnpayMinWarning) vnpayMinWarning.style.display = 'none';
+        }
 
-    if (pointsInput) {
-        pointsInput.addEventListener('input', function() {
-            let pts = parseInt(this.value, 10);
-            if (isNaN(pts) || pts < 0) pts = 0;
-            if (pts > maxAvailablePoints) {
-                pts = maxAvailablePoints;
-                this.value = pts;
+        const discount = pts * 10000;
+        let finalPrice = rawTotal - discount;
+        if (finalPrice < 0) finalPrice = 0;
+
+        if (discountEl) {
+            discountEl.textContent = '-' + discount.toLocaleString('vi-VN') + 'đ';
+        }
+        if (finalPriceEl) {
+            finalPriceEl.textContent = finalPrice.toLocaleString('vi-VN') + 'đ';
+        }
+
+        // Toggle giao diện khi finalPrice == 0
+        if (finalPrice === 0 && rawTotal > 0 && pts > 0) {
+            if (cardPointsFree) cardPointsFree.style.display = 'flex';
+            if (cardVnpay) cardVnpay.style.display = 'none';
+
+            if (btnSubmitLeft) {
+                btnSubmitLeft.innerHTML = '✨ Xác Nhận Đổi Điểm & Nhận Vé (0đ)';
+                btnSubmitLeft.style.background = 'linear-gradient(135deg, #2b8a3e, #237032)';
+                btnSubmitLeft.style.boxShadow = '0 4px 14px rgba(43, 138, 62, 0.45)';
+            }
+            if (btnSubmitRight) {
+                btnSubmitRight.innerHTML = '✨ ĐỔI ĐIỂM & NHẬN VÉ (0đ)';
+                btnSubmitRight.style.background = 'linear-gradient(135deg, #2b8a3e, #237032)';
+                btnSubmitRight.style.boxShadow = '0 4px 14px rgba(43, 138, 62, 0.45)';
+            }
+            if (vnpayMinWarning) vnpayMinWarning.style.display = 'none';
+        } else {
+            if (cardPointsFree) cardPointsFree.style.display = 'none';
+            if (cardVnpay) cardVnpay.style.display = 'flex';
+
+            if (btnSubmitLeft) {
+                btnSubmitLeft.innerHTML = '🔒 Xác Nhận & Thanh Toán Ngay';
+                btnSubmitLeft.style.background = '';
+                btnSubmitLeft.style.boxShadow = '';
+            }
+            if (btnSubmitRight) {
+                btnSubmitRight.innerHTML = '🔒 XÁC NHẬN & THANH TOÁN';
+                btnSubmitRight.style.background = '';
+                btnSubmitRight.style.boxShadow = '';
             }
 
+            // Kiểm tra ràng buộc cận biên VNPay: 0 < finalPrice < 5000
+            if (finalPrice > 0 && finalPrice < 5000) {
+                if (vnpayMinWarning) {
+                    vnpayMinWarning.style.display = 'block';
+                    if (vnpayMinAmountText) vnpayMinAmountText.textContent = finalPrice.toLocaleString('vi-VN') + 'đ';
+                }
+            } else {
+                if (vnpayMinWarning) vnpayMinWarning.style.display = 'none';
+            }
+        }
+    }
+
+    if (pointsInput) {
+        pointsInput.addEventListener('input', updatePricing);
+    }
+
+    if (btnApplyMaxPoints) {
+        btnApplyMaxPoints.addEventListener('click', function() {
+            if (pointsInput) {
+                pointsInput.value = maxUsablePoints;
+                updatePricing();
+            }
+        });
+    }
+
+    // Modal control
+    function openModal() {
+        let pts = parseInt(pointsInput ? pointsInput.value : 0, 10);
+        if (isNaN(pts)) pts = 0;
+        const discount = pts * 10000;
+        const remaining = Math.max(0, availablePoints - pts);
+
+        if (modalRawTotal) modalRawTotal.textContent = rawTotal.toLocaleString('vi-VN') + 'đ';
+        if (modalPointsUsed) modalPointsUsed.textContent = pts + ' điểm';
+        if (modalDiscount) modalDiscount.textContent = '-' + discount.toLocaleString('vi-VN') + 'đ';
+        if (modalRemainingPoints) modalRemainingPoints.textContent = remaining + ' điểm';
+
+        if (modal) modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        if (modal) modal.style.display = 'none';
+    }
+
+    if (btnCancelModal) {
+        btnCancelModal.addEventListener('click', closeModal);
+    }
+
+    if (btnConfirmDeduct) {
+        btnConfirmDeduct.addEventListener('click', function() {
+            isZeroAmountConfirmed = true;
+            closeModal();
+            if (checkoutForm) {
+                checkoutForm.submit();
+            }
+        });
+    }
+
+    // Intercept form submit
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function(e) {
+            let pts = parseInt(pointsInput ? pointsInput.value : 0, 10);
+            if (isNaN(pts)) pts = 0;
             const discount = pts * 10000;
             let finalPrice = rawTotal - discount;
             if (finalPrice < 0) finalPrice = 0;
 
-            if (discountEl) {
-                discountEl.textContent = '-' + discount.toLocaleString('vi-VN') + 'đ';
+            if (finalPrice === 0 && rawTotal > 0 && pts > 0) {
+                if (!isZeroAmountConfirmed) {
+                    e.preventDefault();
+                    openModal();
+                    return;
+                }
             }
-            if (finalPriceEl) {
-                finalPriceEl.textContent = finalPrice.toLocaleString('vi-VN') + 'đ';
+
+            if (finalPrice > 0 && finalPrice < 5000) {
+                e.preventDefault();
+                alert('Cổng thanh toán VNPay yêu cầu số tiền tối thiểu là 5.000 VNĐ. Hiện tại hóa đơn còn ' + finalPrice.toLocaleString('vi-VN') + 'đ. Vui lòng giảm bớt điểm dùng để thanh toán từ 5.000đ hoặc dùng đủ ' + maxUsablePoints + ' điểm để được miễn phí 0đ!');
+                return;
             }
         });
     }
+
+    // Khởi chạy ngay khi tải trang
+    updatePricing();
 </script>
 
 <jsp:include page="/WEB-INF/views/common/footer.jsp" />

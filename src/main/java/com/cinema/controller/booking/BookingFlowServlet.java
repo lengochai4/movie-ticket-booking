@@ -137,9 +137,9 @@ public class BookingFlowServlet extends HttpServlet {
                 request.getRequestDispatcher("/WEB-INF/views/booking/checkout.jsp").forward(request, response);
                 break;
             case "/booking/complete":
-                // Xử lý xác nhận thanh toán theo phương thức đã chọn (VNPAY hoặc MOMO)
-                String paymentMethod = request.getParameter("paymentMethod");
-                String methodDisplay = "MOMO".equalsIgnoreCase(paymentMethod) ? "Ví MoMo" : "Cổng VNPAY";
+                // Xử lý xác nhận thanh toán qua VNPAY
+                String paymentMethod = "VNPAY";
+                String methodDisplay = "Cổng VNPAY";
                 request.setAttribute("paymentMethod", paymentMethod);
 
                 // Cập nhật trạng thái booking thành PAID trong Database

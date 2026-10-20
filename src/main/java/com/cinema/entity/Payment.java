@@ -8,7 +8,7 @@ public class Payment implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String paymentID;
-    private String type; // CASH, VNPAY, MOMO
+    private String type; // VNPAY, POINTS
     private BigDecimal amount;
     private LocalDateTime paymentDate;
 

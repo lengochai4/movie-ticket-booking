@@ -130,8 +130,17 @@ public class BookingService {
 
         BigDecimal rawTotal = bookingDAO.calculateRawTotal(bookingID.trim());
         int safePoints = Math.max(0, pointsToUse);
-        BigDecimal discount = BigDecimal.valueOf(safePoints * (long) LoyaltyService.POINT_VALUE_VND);
 
+        // Điểm số tối đa áp dụng: điểm * 10.000 <= 90% * tổng tiền (loại bỏ bẫy tiền thừa < 5.000đ)
+        int maxPointsAllowed = (int) Math.floor((rawTotal.doubleValue() * 0.9) / LoyaltyService.POINT_VALUE_VND);
+        while (maxPointsAllowed > 0 && (rawTotal.doubleValue() - (maxPointsAllowed * LoyaltyService.POINT_VALUE_VND)) < 5000.0) {
+            maxPointsAllowed--;
+        }
+        if (safePoints > maxPointsAllowed) {
+            safePoints = maxPointsAllowed;
+        }
+
+        BigDecimal discount = BigDecimal.valueOf(safePoints * (long) LoyaltyService.POINT_VALUE_VND);
         BigDecimal finalAmount = rawTotal.subtract(discount);
         return (finalAmount.compareTo(BigDecimal.ZERO) < 0) ? BigDecimal.ZERO : finalAmount;
     }
@@ -150,25 +159,41 @@ public class BookingService {
             return false;
         }
 
+        Map<String, Object> bookingDetails = bookingDAO.getBookingDetails(bookingID.trim());
+        String resolvedUserId = userId;
+        if ((resolvedUserId == null || resolvedUserId.isBlank()) && bookingDetails != null && bookingDetails.get("userId") != null) {
+            resolvedUserId = String.valueOf(bookingDetails.get("userId"));
+        }
+
+        BigDecimal rawTotal = bookingDAO.calculateRawTotal(bookingID.trim());
+        int maxPointsAllowed = (int) Math.floor((rawTotal.doubleValue() * 0.9) / LoyaltyService.POINT_VALUE_VND);
+        while (maxPointsAllowed > 0 && (rawTotal.doubleValue() - (maxPointsAllowed * LoyaltyService.POINT_VALUE_VND)) < 5000.0) {
+            maxPointsAllowed--;
+        }
+        int effectivePoints = Math.max(0, pointsToUse);
+        if (effectivePoints > maxPointsAllowed) {
+            effectivePoints = maxPointsAllowed;
+        }
+
         String paymentID = "PAY_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
-        BigDecimal finalAmount = calculateFinalAmount(bookingID.trim(), pointsToUse);
+        BigDecimal finalAmount = calculateFinalAmount(bookingID.trim(), effectivePoints);
         String resolvedType = (paymentType != null && !paymentType.trim().isEmpty())
                 ? paymentType.trim().toUpperCase()
-                : "CASH";
+                : "VNPAY";
 
         Payment payment = new Payment(paymentID, resolvedType, finalAmount, LocalDateTime.now());
 
         // Tính điểm thưởng được cộng (1 điểm mỗi 10.000 VNĐ chi tiêu)
         int earnedPoints = (int) Math.floor(finalAmount.doubleValue() / 10000.0);
 
-        boolean success = bookingDAO.completePayment(bookingID.trim(), payment, pointsToUse, earnedPoints,
+        boolean success = bookingDAO.completePayment(bookingID.trim(), payment, effectivePoints, earnedPoints,
                 finalAmount, customerName, email, phone);
 
-        if (success && userId != null && !userId.isBlank()) {
+        if (success && resolvedUserId != null && !resolvedUserId.isBlank()) {
             // Trừ điểm đã sử dụng trong loyalty_accounts
-            if (pointsToUse > 0) {
+            if (effectivePoints > 0) {
                 try {
-                    loyaltyService.usePoints(userId.trim(), pointsToUse);
+                    loyaltyService.usePoints(resolvedUserId.trim(), effectivePoints);
                 } catch (Exception e) {
                     System.err.println("[BookingService] Lỗi trừ điểm loyalty: " + e.getMessage());
                 }
@@ -176,7 +201,7 @@ public class BookingService {
             // Cộng điểm thưởng mới
             if (earnedPoints > 0) {
                 try {
-                    loyaltyService.addPoints(userId.trim(), earnedPoints);
+                    loyaltyService.addPoints(resolvedUserId.trim(), earnedPoints);
                 } catch (Exception e) {
                     System.err.println("[BookingService] Lỗi cộng điểm loyalty: " + e.getMessage());
                 }

@@ -604,8 +604,8 @@ public class BookingDAO {
                 "customername = COALESCE(?, customername), customer_name = COALESCE(?, customer_name), " +
                 "email = COALESCE(?, email), phone = COALESCE(?, phone) " +
                 "WHERE (bookingid = ? OR booking_id = ?) " +
-                "  AND bookingstatus = 'PENDING' " +
-                "  AND (COALESCE(createdat, created_at) + INTERVAL '15 minute') > CURRENT_TIMESTAMP";
+                "  AND (UPPER(COALESCE(bookingstatus, status, '')) = 'PENDING') " +
+                "  AND (COALESCE(createdat, created_at, CURRENT_TIMESTAMP) + INTERVAL '15 minute') >= CURRENT_TIMESTAMP";
 
         String updateTicketSql =
                 "UPDATE tickets SET ticketstatus = 'BOOKED', status = 'BOOKED' " +
@@ -728,7 +728,7 @@ public class BookingDAO {
     }
 
     public boolean confirmPayment(String bookingID, String paymentID) {
-        return completePayment(bookingID, new Payment(paymentID, "CASH", BigDecimal.ZERO, null));
+        return completePayment(bookingID, new Payment(paymentID, "VNPAY", BigDecimal.ZERO, null));
     }
 
     private static void close(AutoCloseable... closeables) {

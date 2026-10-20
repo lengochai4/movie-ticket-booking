@@ -355,6 +355,10 @@ public class BookingServlet extends HttpServlet {
         }
 
         String userId = resolveUserId(request);
+        if ((userId == null || userId.isBlank()) && bookingDetails.get("userId") != null) {
+            userId = String.valueOf(bookingDetails.get("userId"));
+        }
+
         int availablePoints = 0;
         if (userId != null && !userId.isBlank()) {
             try {
@@ -362,6 +366,14 @@ public class BookingServlet extends HttpServlet {
             } catch (Exception ignored) {
             }
         }
+
+        BigDecimal rawTotal = bookingService.getRawTotal(bookingId.trim());
+        // Điểm số tối đa áp dụng: điểm * 10.000 <= 90% * tổng tiền (loại bỏ bẫy tiền thừa < 5.000đ)
+        int maxPointsForBill = (int) Math.floor((rawTotal.doubleValue() * 0.9) / LoyaltyService.POINT_VALUE_VND);
+        while (maxPointsForBill > 0 && (rawTotal.doubleValue() - (maxPointsForBill * LoyaltyService.POINT_VALUE_VND)) < 5000.0) {
+            maxPointsForBill--;
+        }
+        int maxUsablePoints = Math.min(availablePoints, maxPointsForBill);
 
         int pointsUsed = 0;
         String pointsStr = request.getParameter("pointsUsed");
@@ -371,12 +383,11 @@ public class BookingServlet extends HttpServlet {
             } catch (NumberFormatException ignored) {
             }
         }
-        // Giới hạn không quá số điểm hiện có
-        if (pointsUsed > availablePoints) {
-            pointsUsed = availablePoints;
+        // Giới hạn không quá số điểm khả dụng và không quá 90% giá trị đơn hàng
+        if (pointsUsed > maxUsablePoints) {
+            pointsUsed = maxUsablePoints;
         }
 
-        BigDecimal rawTotal = bookingService.getRawTotal(bookingId.trim());
         BigDecimal totalAmount = bookingService.calculateFinalAmount(bookingId.trim(), pointsUsed);
 
         request.setAttribute("bookingId", bookingId.trim());
@@ -386,6 +397,7 @@ public class BookingServlet extends HttpServlet {
         request.setAttribute("totalAmount", totalAmount);
         request.setAttribute("pointsUsed", pointsUsed);
         request.setAttribute("availablePoints", availablePoints);
+        request.setAttribute("maxUsablePoints", maxUsablePoints);
 
         String error = request.getParameter("error");
         if (error != null) {
@@ -427,19 +439,15 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
-        String paymentType = request.getParameter("paymentType");
-        if (paymentType == null || paymentType.trim().isEmpty()) {
-            paymentType = request.getParameter("paymentMethod");
-        }
-        if (paymentType == null || paymentType.trim().isEmpty()) {
-            paymentType = "CASH";
-        }
-
         String contactName = request.getParameter("contactName");
         String contactPhone = request.getParameter("contactPhone");
         String contactEmail = request.getParameter("contactEmail");
 
         String userId = resolveUserId(request);
+        if (userId == null || userId.isBlank()) {
+            userId = (String) bookingDetails.get("userId");
+        }
+
         int availablePoints = 0;
         if (userId != null && !userId.isBlank()) {
             try {
@@ -462,9 +470,14 @@ public class BookingServlet extends HttpServlet {
         }
 
         BigDecimal rawTotal = bookingService.getRawTotal(bookingId.trim());
-        int maxPointsForOrder = (int) Math.floor(rawTotal.doubleValue() / LoyaltyService.POINT_VALUE_VND);
-        if (pointsUsed > maxPointsForOrder) {
-            pointsUsed = maxPointsForOrder;
+        // Điểm số tối đa áp dụng: điểm * 10.000 <= 90% * tổng tiền (loại bỏ bẫy tiền thừa < 5.000đ)
+        int maxPointsForOrder = (int) Math.floor((rawTotal.doubleValue() * 0.9) / LoyaltyService.POINT_VALUE_VND);
+        while (maxPointsForOrder > 0 && (rawTotal.doubleValue() - (maxPointsForOrder * LoyaltyService.POINT_VALUE_VND)) < 5000.0) {
+            maxPointsForOrder--;
+        }
+        int maxAllowedPoints = Math.min(availablePoints, maxPointsForOrder);
+        if (pointsUsed > maxAllowedPoints) {
+            pointsUsed = maxAllowedPoints;
         }
 
         BigDecimal finalAmount = bookingService.calculateFinalAmount(bookingId.trim(), pointsUsed);
@@ -472,22 +485,42 @@ public class BookingServlet extends HttpServlet {
         // Lưu trước điểm dùng và thông tin khách hàng vào đơn PENDING
         bookingService.updatePendingBooking(bookingId.trim(), pointsUsed, finalAmount, contactName, contactEmail, contactPhone);
 
-        // Nếu phương thức thanh toán là VNPAY -> chuyển hướng sang cổng thanh toán VNPay Sandbox
-        if ("VNPAY".equalsIgnoreCase(paymentType.trim())) {
-            long amountVnd = finalAmount.longValue();
-            String vnpayUrl = bookingService.createVNPayUrl(request, bookingId.trim(), amountVnd);
-            response.sendRedirect(vnpayUrl);
+        // 1. Nếu số tiền sau khi dùng điểm = 0 (khách dùng điểm thanh toán 100% đơn hàng)
+        if (finalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            boolean success = bookingService.processPayment(bookingId.trim(), "POINTS", pointsUsed,
+                    userId, contactName, contactEmail, contactPhone);
+            if (success) {
+                // Cập nhật lại số điểm mới trong session loginUser
+                if (userId != null && !userId.isBlank()) {
+                    try {
+                        int remainingPoints = loyaltyService.getPoints(userId.trim());
+                        HttpSession session = request.getSession(false);
+                        if (session != null) {
+                            Object loginUser = session.getAttribute("loginUser");
+                            if (loginUser != null) {
+                                LoginUserSupport.setLoyaltyPoints(loginUser, remainingPoints);
+                            }
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+                response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId.trim());
+            } else {
+                response.sendRedirect(request.getContextPath() + "/booking/checkout?bookingId=" + bookingId.trim() + "&error=failed");
+            }
             return;
         }
 
-        // Các phương thức thanh toán trực tiếp khác (CASH / MOMO)
-        boolean success = bookingService.processPayment(bookingId.trim(), paymentType.trim(), pointsUsed,
-                userId, contactName, contactEmail, contactPhone);
-        if (success) {
-            response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId.trim());
-        } else {
-            response.sendRedirect(request.getContextPath() + "/booking/checkout?bookingId=" + bookingId.trim() + "&error=failed");
+        // 2. Kiểm tra nếu số tiền > 0 nhưng < 5000 (VNPay yêu cầu tối thiểu 5.000 VNĐ)
+        if (finalAmount.compareTo(BigDecimal.valueOf(5000)) < 0) {
+            response.sendRedirect(request.getContextPath() + "/booking/checkout?bookingId=" + bookingId.trim() + "&error=vnpay_min_amount");
+            return;
         }
+
+        // 3. Chuyển hướng sang cổng thanh toán VNPAY Sandbox
+        long amountVnd = finalAmount.longValue();
+        String vnpayUrl = bookingService.createVNPayUrl(request, bookingId.trim(), amountVnd);
+        response.sendRedirect(vnpayUrl);
     }
 
     /**
@@ -621,6 +654,20 @@ public class BookingServlet extends HttpServlet {
 
         boolean success = bookingService.completePaymentVNPay(bookingId, transactionNo, amount, userId, null, null, null);
         if (success) {
+            // Đồng bộ điểm thưởng mới vào session loginUser
+            if (userId != null && !userId.isBlank()) {
+                try {
+                    int remainingPoints = loyaltyService.getPoints(userId.trim());
+                    HttpSession session = request.getSession(false);
+                    if (session != null) {
+                        Object loginUser = session.getAttribute("loginUser");
+                        if (loginUser != null) {
+                            LoginUserSupport.setLoyaltyPoints(loginUser, remainingPoints);
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
             response.sendRedirect(request.getContextPath() + "/booking/success?bookingId=" + bookingId);
         } else {
             response.sendRedirect(request.getContextPath() + "/booking/checkout?bookingId=" + bookingId + "&error=failed");
