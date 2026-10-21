@@ -17,6 +17,9 @@ public class Showtime {
     @Column(nullable = false)
     private LocalDateTime endTime;
 
+    // Giá vé cơ bản của suất chiếu (VNĐ). Dùng Double để suất chiếu cũ chưa có giá vẫn đọc được (null)
+    private Double price;
+
     @ManyToOne
     @JoinColumn(name = "movie_id", nullable = false)
     private Movie movie;
@@ -58,6 +61,14 @@ public class Showtime {
 
     public void setEndTime(LocalDateTime endTime) {
         this.endTime = endTime;
+    }
+
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
     public Movie getMovie() {

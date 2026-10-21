@@ -1,5 +1,5 @@
 package com.cinema.enums;
 
 public enum TicketStatus {
-    AVAILABLE, USED, CANCELLED
+    AVAILABLE, HOLD, BOOKED, USED, CANCELLED
 }

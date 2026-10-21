@@ -44,7 +44,7 @@ public class BookingDAO {
         EntityManager em = open();
         try {
             TypedQuery<Booking> query = em.createQuery(
-                    FETCH + "WHERE b.userId = :userId ORDER BY b.createdAt DESC", Booking.class);
+                    FETCH + "WHERE b.userID = :userId ORDER BY b.createdAt DESC", Booking.class);
             query.setParameter("userId", userId);
             List<Booking> list = distinct(query.getResultList());
             touchAll(list);
@@ -75,7 +75,7 @@ public class BookingDAO {
             StringBuilder jpql = new StringBuilder(FETCH);
             jpql.append("WHERE 1 = 1 ");
             if (status != null) {
-                jpql.append("AND b.status = :status ");
+                jpql.append("AND b.bookingStatus = :status ");
             }
             if (keyword != null && !keyword.isBlank()) {
                 jpql.append("AND (LOWER(b.orderCode) LIKE :kw ESCAPE '\\' "
@@ -108,7 +108,7 @@ public class BookingDAO {
         BookingStats stats = new BookingStats();
         try {
             List<Object[]> rows = em.createQuery(
-                    "SELECT b.status, COUNT(b) FROM Booking b GROUP BY b.status", Object[].class)
+                    "SELECT b.bookingStatus, COUNT(b) FROM Booking b GROUP BY b.bookingStatus", Object[].class)
                     .getResultList();
             int total = 0;
             if (rows != null) {
@@ -127,7 +127,7 @@ public class BookingDAO {
             }
             stats.setTotalOrders(total);
             Object rawRevenue = em.createQuery(
-                    "SELECT COALESCE(SUM(b.totalPrice), 0) FROM Booking b WHERE b.status = :paid")
+                    "SELECT COALESCE(SUM(b.totalPrice), 0) FROM Booking b WHERE b.bookingStatus = :paid")
                     .setParameter("paid", BookingStatus.PAID)
                     .getSingleResult();
             double revenue = rawRevenue instanceof Number ? ((Number) rawRevenue).doubleValue() : 0;
@@ -188,12 +188,12 @@ public class BookingDAO {
             Booking booking = new Booking();
             booking.setBookingID(UUID.randomUUID().toString());
             booking.setOrderCode(nextOrderCode(em));
-            booking.setUserId(request.getUserId().trim());
+            booking.setUserID(request.getUserId().trim());
             booking.setCustomerName(trimToNull(request.getCustomerName()));
             booking.setPhone(trimToNull(request.getPhone()));
             booking.setEmail(trimToNull(request.getEmail()));
             booking.setShowtime(showtime);
-            booking.setStatus(request.isPaid() ? BookingStatus.PAID : BookingStatus.PENDING);
+            booking.setBookingStatus(request.isPaid() ? BookingStatus.PAID : BookingStatus.PENDING);
             booking.setCreatedAt(LocalDateTime.now());
             booking.setMovieFormat(isBlank(request.getMovieFormat()) ? "2D Phụ Đề" : request.getMovieFormat().trim());
             snapshotShow(booking, showtime, movie, room);
@@ -217,7 +217,7 @@ public class BookingDAO {
             booking.setPointsUsed(pointsToUse);
             Integer balance = null;
             if (pointsToUse > 0) {
-                balance = loyaltyService.usePoints(em, booking.getUserId(), pointsToUse);
+                balance = loyaltyService.usePoints(em, booking.getUserID(), pointsToUse);
                 finalTotal = finalTotal - (pointsToUse * (double) LoyaltyService.POINT_VALUE_VND);
             }
             booking.setTotalPrice(finalTotal);
@@ -235,14 +235,14 @@ public class BookingDAO {
                 ticket.setTicketID(UUID.randomUUID().toString());
                 ticket.setSeat(seat);
                 ticket.setSeatLabel(label);
-                ticket.setStatus(TicketStatus.AVAILABLE);
+                ticket.setTicketStatus(TicketStatus.AVAILABLE);
                 ticket.setPrice(eachPrice);
                 booking.addTicket(ticket);
                 labels.add(label);
             }
             booking.setSeats(String.join(", ", labels));
 
-            if (booking.getStatus() == BookingStatus.PAID) {
+            if (booking.getBookingStatus() == BookingStatus.PAID) {
                 Integer afterEarn = awardPoints(em, booking);
                 if (afterEarn != null) {
                     balance = afterEarn;
@@ -252,7 +252,7 @@ public class BookingDAO {
             trans.commit();
 
             OrderActionResult result = OrderActionResult.ok("Đã ghi nhận đơn vé " + booking.getOrderCode() + ".");
-            result.setUserId(booking.getUserId());
+            result.setUserId(booking.getUserID());
             result.setOrderCode(booking.getOrderCode());
             result.setLoyaltyPoints(balance);
             return result;
@@ -278,11 +278,11 @@ public class BookingDAO {
                 rollback(trans);
                 return OrderActionResult.fail("Không tìm thấy đơn vé.");
             }
-            if (userId == null || !userId.equals(booking.getUserId())) {
+            if (userId == null || !userId.equals(booking.getUserID())) {
                 rollback(trans);
                 return OrderActionResult.fail("Bạn không có quyền hủy đơn vé này.");
             }
-            if (booking.getStatus() == BookingStatus.CANCELLED) {
+            if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
                 rollback(trans);
                 return OrderActionResult.fail("Đơn vé này đã được hủy trước đó.");
             }
@@ -312,7 +312,7 @@ public class BookingDAO {
                 rollback(trans);
                 return OrderActionResult.fail("Không tìm thấy đơn vé.");
             }
-            if (booking.getStatus() == BookingStatus.CANCELLED) {
+            if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
                 rollback(trans);
                 return OrderActionResult.fail("Đơn vé này đã được hủy trước đó.");
             }
@@ -349,19 +349,19 @@ public class BookingDAO {
                 rollback(trans);
                 return OrderActionResult.fail("Không tìm thấy đơn vé.");
             }
-            if (booking.getStatus() == BookingStatus.CANCELLED) {
+            if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
                 rollback(trans);
                 return OrderActionResult.fail("Đơn đã hủy, không thể chuyển sang đã thanh toán.");
             }
-            if (booking.getStatus() == BookingStatus.PAID) {
+            if (booking.getBookingStatus() == BookingStatus.PAID) {
                 rollback(trans);
                 return OrderActionResult.fail("Đơn vé đã ở trạng thái đã thanh toán.");
             }
-            booking.setStatus(BookingStatus.PAID);
+            booking.setBookingStatus(BookingStatus.PAID);
             Integer balance = awardPoints(em, booking);
             trans.commit();
             OrderActionResult result = OrderActionResult.ok("Đã xác nhận thanh toán đơn " + booking.getOrderCode() + ".");
-            result.setUserId(booking.getUserId());
+            result.setUserId(booking.getUserID());
             result.setOrderCode(booking.getOrderCode());
             result.setLoyaltyPoints(balance);
             return result;
@@ -375,12 +375,12 @@ public class BookingDAO {
     }
 
     private Integer applyCancel(EntityManager em, Booking booking, String reason) {
-        boolean wasPaid = booking.getStatus() == BookingStatus.PAID;
-        booking.setStatus(BookingStatus.CANCELLED);
+        boolean wasPaid = booking.getBookingStatus() == BookingStatus.PAID;
+        booking.setBookingStatus(BookingStatus.CANCELLED);
         booking.setCancelReason(reason);
         booking.setCancelledAt(LocalDateTime.now());
         for (Ticket ticket : booking.getTickets()) {
-            ticket.setStatus(TicketStatus.CANCELLED);
+            ticket.setTicketStatus(TicketStatus.CANCELLED);
         }
         if (booking.isPointsReversed()) {
             return null;
@@ -394,9 +394,9 @@ public class BookingDAO {
         }
         booking.setPointsReversed(true);
         if (delta == 0) {
-            return loyaltyAccountDAO.ensure(em, booking.getUserId(), 0);
+            return loyaltyAccountDAO.ensure(em, booking.getUserID(), 0);
         }
-        return loyaltyAccountDAO.adjust(em, booking.getUserId(), delta);
+        return loyaltyAccountDAO.adjust(em, booking.getUserID(), delta);
     }
 
     private Integer awardPoints(EntityManager em, Booking booking) {
@@ -410,9 +410,9 @@ public class BookingDAO {
         }
         booking.setPointsEarned(earned);
         if (earned == 0) {
-            return loyaltyAccountDAO.ensure(em, booking.getUserId(), 0);
+            return loyaltyAccountDAO.ensure(em, booking.getUserID(), 0);
         }
-        return loyaltyAccountDAO.adjust(em, booking.getUserId(), earned);
+        return loyaltyAccountDAO.adjust(em, booking.getUserID(), earned);
     }
 
     private OrderActionResult successCancel(Booking booking, Integer balance) {
@@ -421,7 +421,7 @@ public class BookingDAO {
             message = message + " Điểm thưởng hiện có: " + balance + ".";
         }
         OrderActionResult result = OrderActionResult.ok(message);
-        result.setUserId(booking.getUserId());
+        result.setUserId(booking.getUserID());
         result.setOrderCode(booking.getOrderCode());
         result.setLoyaltyPoints(balance);
         return result;
@@ -451,8 +451,8 @@ public class BookingDAO {
         StringBuilder jpql = new StringBuilder(
                 "SELECT COUNT(t) FROM Ticket t JOIN t.booking b "
                         + "WHERE b.showtime.showtimeID = :sid "
-                        + "AND b.status <> :cancelled "
-                        + "AND t.status <> :ticketCancelled "
+                        + "AND b.bookingStatus <> :cancelled "
+                        + "AND t.ticketStatus <> :ticketCancelled "
                         + "AND (t.seatLabel = :label");
         if (seat != null && seat.getSeatID() != null) {
             jpql.append(" OR t.seat.seatID = :seatId");

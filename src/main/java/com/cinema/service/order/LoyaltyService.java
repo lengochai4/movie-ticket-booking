@@ -45,6 +45,7 @@ public class LoyaltyService {
         try {
             trans.begin();
             Integer balance = loyaltyAccountDAO.adjust(em, userId.trim(), points);
+            syncUser(em, userId.trim(), balance);
             trans.commit();
             return balance == null ? 0 : balance;
         } catch (RuntimeException e) {
@@ -98,7 +99,21 @@ public class LoyaltyService {
             throw new IllegalStateException("Không đủ điểm thưởng. Hiện có " + balance + " điểm.");
         }
         Integer next = loyaltyAccountDAO.adjust(em, userId.trim(), -points);
+        syncUser(em, userId.trim(), next);
         return next == null ? 0 : next;
+    }
+
+    private void syncUser(EntityManager em, String userId, Integer points) {
+        if (userId == null || userId.isBlank() || points == null) {
+            return;
+        }
+        try {
+            com.cinema.entity.User user = em.find(com.cinema.entity.User.class, userId.trim());
+            if (user != null) {
+                user.setLoyaltyPoints(points);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     private void requireUser(String userId) {

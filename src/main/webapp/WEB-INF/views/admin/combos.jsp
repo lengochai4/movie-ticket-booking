@@ -1,6 +1,7 @@
 <%@ page contentType="text/html; charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <c:set var="pageTitle" value="Quản Lý Combo Bắp Nước - Cinetik Admin" scope="request"/>
 <c:set var="extraCss" value="admin-users.css" scope="request"/>
@@ -411,7 +412,7 @@
             <div class="stat-card">
                 <div class="stat-icon total">🍿</div>
                 <div class="stat-info">
-                    <span class="stat-value" id="statTotalCombos">6 Món</span>
+                    <span class="stat-value" id="statTotalCombos">${not empty totalCombos ? totalCombos : 0} Món</span>
                     <span class="stat-label">Tổng số combo & món lẻ</span>
                 </div>
             </div>
@@ -419,27 +420,44 @@
             <div class="stat-card">
                 <div class="stat-icon customer" style="background: rgba(34, 197, 94, 0.15); color: #4ade80;">🟢</div>
                 <div class="stat-info">
-                    <span class="stat-value" id="statActiveCombos">6 Món</span>
+                    <span class="stat-value" id="statActiveCombos">${not empty activeCombos ? activeCombos : 0} Món</span>
                     <span class="stat-label">Đang mở bán</span>
                 </div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon staff" style="background: rgba(229, 169, 59, 0.15); color: #fcca46;">⭐</div>
+                <div class="stat-icon staff" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">🔴</div>
                 <div class="stat-info">
-                    <span class="stat-value" id="statBestSeller">Combo Đôi</span>
-                    <span class="stat-label">Bán chạy nhất (45% F&B)</span>
+                    <span class="stat-value" id="statOutOfStock">${not empty outOfStockCombos ? outOfStockCombos : 0} Món</span>
+                    <span class="stat-label">Tạm hết hàng</span>
                 </div>
             </div>
 
             <div class="stat-card">
                 <div class="stat-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🏷️</div>
                 <div class="stat-info">
-                    <span class="stat-value" id="statAvgPrice">71.000 đ</span>
+                    <span class="stat-value" id="statAvgPrice"><fmt:formatNumber value="${not empty avgComboPrice ? avgComboPrice : 0}" type="number" maxFractionDigits="0"/> đ</span>
                     <span class="stat-label">Giá combo trung bình</span>
                 </div>
             </div>
         </section>
+
+        <%---- THÔNG BÁO HỆ THỐNG (flash message từ session) ----%>
+        <c:set var="msgError" value="${not empty errorMessage ? errorMessage : sessionScope.errorMessage}" />
+        <c:set var="msgSuccess" value="${not empty successMessage ? successMessage : sessionScope.successMessage}" />
+
+        <c:if test="${not empty msgError}">
+            <div style="background: rgba(120, 0, 0, 0.4); border: 1px solid #c92a2a; color: #ff8787; padding: 12px 18px; border-radius: 8px; font-size: 14px;">
+                <span>⚠️ <c:out value="${msgError}"/></span>
+            </div>
+            <c:remove var="errorMessage" scope="session" />
+        </c:if>
+        <c:if test="${not empty msgSuccess}">
+            <div style="background: rgba(43, 138, 62, 0.25); border: 1px solid #2b8a3e; color: #69db7c; padding: 12px 18px; border-radius: 8px; font-size: 14px;">
+                <span>✅ <c:out value="${msgSuccess}"/></span>
+            </div>
+            <c:remove var="successMessage" scope="session" />
+        </c:if>
 
         <%---- BỘ LỌC & TÌM KIẾM COMBO ----%>
         <section class="filter-card">
@@ -476,25 +494,32 @@
 
         <%---- CHẾ ĐỘ 1: DẠNG THẺ MENU (GRID VIEW) ----%>
         <section id="comboGridSection" class="combo-grid-container">
-            
-            <%---- Món 1: Combo Solo ----%>
-            <div class="combo-admin-card" data-name="Combo Solo" data-cat="Combo" data-status="ACTIVE">
+            <c:forEach items="${comboList}" var="cb">
+            <div class="combo-admin-card" data-name="<c:out value='${cb.name}'/>" data-cat="<c:out value='${cb.category}'/>" data-status="${cb.status}">
                 <div class="combo-card-image-wrap">
-                    <img src="https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=400&auto=format&fit=crop" 
-                         alt="Combo Solo" class="combo-card-image">
-                    <span class="combo-card-cat-badge">Combo 1 Người</span>
-                    <span class="combo-card-price-badge">65.000 đ</span>
+                    <img src="<c:out value='${not empty cb.imageURL ? cb.imageURL : "https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=400&auto=format&fit=crop"}'/>"
+                         alt="<c:out value='${cb.name}'/>" class="combo-card-image">
+                    <span class="combo-card-cat-badge"><c:out value="${cb.category}"/></span>
+                    <span class="combo-card-price-badge"><fmt:formatNumber value="${cb.price}" type="number" maxFractionDigits="0"/> đ</span>
                 </div>
                 <div class="combo-card-body">
-                    <div class="combo-card-title">Combo Solo</div>
-                    <div class="combo-card-desc">1 Bắp ngọt bơ thơm giòn (60oz) + 1 Ly nước ngọt mát lạnh tự chọn (32oz)</div>
+                    <div class="combo-card-title"><c:out value="${cb.name}"/></div>
+                    <div class="combo-card-desc"><c:out value="${cb.description}"/></div>
                     <div class="combo-card-footer">
-                        <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                            ● Đang bán
-                        </span>
+                        <c:choose>
+                            <c:when test="${cb.status == 'ACTIVE'}">
+                                <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">● Đang bán</span>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="badge-status" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">● Tạm hết hàng</span>
+                            </c:otherwise>
+                        </c:choose>
                         <div class="table-actions-wrap">
                             <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                    onclick="openEditComboModal('CB01', 'Combo Solo', 'Combo', '65.000', 'https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=400&auto=format&fit=crop', '1 Bắp ngọt bơ thơm giòn (60oz) + 1 Ly nước ngọt mát lạnh tự chọn (32oz)', 'ACTIVE')">
+                                    data-id="${cb.comboID}" data-name="<c:out value='${cb.name}'/>" data-cat="<c:out value='${cb.category}'/>"
+                                    data-price="<fmt:formatNumber value='${cb.price}' groupingUsed='false' maxFractionDigits='0'/>"
+                                    data-img="<c:out value='${cb.imageURL}'/>" data-desc="<c:out value='${cb.description}'/>" data-status="${cb.status}"
+                                    onclick="const d = this.dataset; openEditComboModal(d.id, d.name, d.cat, d.price, d.img, d.desc, d.status)">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -502,7 +527,8 @@
                                 <span>Sửa</span>
                             </button>
                             <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                    onclick="openDeleteComboModal('CB01', 'Combo Solo')">
+                                    data-id="${cb.comboID}" data-name="<c:out value='${cb.name}'/>"
+                                    onclick="openDeleteComboModal(this.dataset.id, this.dataset.name)">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -515,201 +541,13 @@
                     </div>
                 </div>
             </div>
+            </c:forEach>
 
-            <%---- Món 2: Combo Đôi ----%>
-            <div class="combo-admin-card" data-name="Combo Đôi (Couple)" data-cat="Combo" data-status="ACTIVE">
-                <div class="combo-card-image-wrap">
-                    <img src="https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=400&auto=format&fit=crop" 
-                         alt="Combo Đôi" class="combo-card-image">
-                    <span class="combo-card-cat-badge">Combo 2 Người</span>
-                    <span class="combo-card-price-badge">89.000 đ</span>
+            <c:if test="${empty comboList}">
+                <div style="grid-column: 1 / -1; text-align: center; padding: 45px 20px; color: #94a3b8; font-size: 14px;">
+                    🍿 Chưa có combo nào. Bấm "Thêm Combo" để tạo món đầu tiên.
                 </div>
-                <div class="combo-card-body">
-                    <div class="combo-card-title">Combo Đôi (Couple)</div>
-                    <div class="combo-card-desc">1 Bắp khổng lồ (vị phô mai hoặc caramel) + 2 Ly nước ngọt mát lạnh tự chọn (32oz)</div>
-                    <div class="combo-card-footer">
-                        <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                            ● Đang bán
-                        </span>
-                        <div class="table-actions-wrap">
-                            <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                    onclick="openEditComboModal('CB02', 'Combo Đôi (Couple)', 'Combo', '89.000', 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=400&auto=format&fit=crop', '1 Bắp khổng lồ (vị phô mai hoặc caramel) + 2 Ly nước ngọt mát lạnh tự chọn (32oz)', 'ACTIVE')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                                <span>Sửa</span>
-                            </button>
-                            <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                    onclick="openDeleteComboModal('CB02', 'Combo Đôi (Couple)')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                </svg>
-                                <span>Xóa</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <%---- Món 3: Combo Gia Đình ----%>
-            <div class="combo-admin-card" data-name="Combo Gia Đình (Family)" data-cat="Combo" data-status="ACTIVE">
-                <div class="combo-card-image-wrap">
-                    <img src="https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=400&auto=format&fit=crop" 
-                         alt="Combo Gia Đình" class="combo-card-image">
-                    <span class="combo-card-cat-badge">Gia Đình</span>
-                    <span class="combo-card-price-badge">139.000 đ</span>
-                </div>
-                <div class="combo-card-body">
-                    <div class="combo-card-title">Combo Gia Đình (Family)</div>
-                    <div class="combo-card-desc">2 Hộp bắp ngọt lớn + 3 Ly nước ngọt + 1 Gói Snack khoai tây chiên giòn rụm</div>
-                    <div class="combo-card-footer">
-                        <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                            ● Đang bán
-                        </span>
-                        <div class="table-actions-wrap">
-                            <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                    onclick="openEditComboModal('CB03', 'Combo Gia Đình (Family)', 'Combo', '139.000', 'https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=400&auto=format&fit=crop', '2 Hộp bắp ngọt lớn + 3 Ly nước ngọt + 1 Gói Snack khoai tây chiên giòn rụm', 'ACTIVE')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                                <span>Sửa</span>
-                            </button>
-                            <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                    onclick="openDeleteComboModal('CB03', 'Combo Gia Đình (Family)')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                </svg>
-                                <span>Xóa</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <%---- Món 4: Bắp Rang Bơ Truyền Thống ----%>
-            <div class="combo-admin-card" data-name="Bắp Rang Bơ Truyền Thống" data-cat="Bắp Rang" data-status="ACTIVE">
-                <div class="combo-card-image-wrap">
-                    <img src="https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=400&auto=format&fit=crop" 
-                         alt="Bắp Rang Bơ" class="combo-card-image">
-                    <span class="combo-card-cat-badge">Bắp Rang</span>
-                    <span class="combo-card-price-badge">45.000 đ</span>
-                </div>
-                <div class="combo-card-body">
-                    <div class="combo-card-title">Bắp Rang Bơ Truyền Thống (60oz)</div>
-                    <div class="combo-card-desc">Hạt bắp nổ vàng óng ánh, thơm lừng vị bơ béo ngậy truyền thống rạp chiếu</div>
-                    <div class="combo-card-footer">
-                        <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                            ● Đang bán
-                        </span>
-                        <div class="table-actions-wrap">
-                            <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                    onclick="openEditComboModal('CB04', 'Bắp Rang Bơ Truyền Thống (60oz)', 'Bắp Rang', '45.000', 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=400&auto=format&fit=crop', 'Hạt bắp nổ vàng óng ánh, thơm lừng vị bơ béo ngậy truyền thống rạp chiếu', 'ACTIVE')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                                <span>Sửa</span>
-                            </button>
-                            <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                    onclick="openDeleteComboModal('CB04', 'Bắp Rang Bơ Truyền Thống (60oz)')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                </svg>
-                                <span>Xóa</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <%---- Món 5: Bắp Caramel Phô Mai ----%>
-            <div class="combo-admin-card" data-name="Bắp Rang Vị Caramel Phô Mai" data-cat="Bắp Rang" data-status="ACTIVE">
-                <div class="combo-card-image-wrap">
-                    <img src="https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=400&auto=format&fit=crop" 
-                         alt="Bắp Phô Mai" class="combo-card-image">
-                    <span class="combo-card-cat-badge">Bắp Rang</span>
-                    <span class="combo-card-price-badge">55.000 đ</span>
-                </div>
-                <div class="combo-card-body">
-                    <div class="combo-card-title">Bắp Rang Caramel Phô Mai Mix</div>
-                    <div class="combo-card-desc">Sự kết hợp hoàn hảo giữa vị ngọt thơm ngậy của Caramel và vị mặn bùi của Phô mai Cheddar</div>
-                    <div class="combo-card-footer">
-                        <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                            ● Đang bán
-                        </span>
-                        <div class="table-actions-wrap">
-                            <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                    onclick="openEditComboModal('CB05', 'Bắp Rang Caramel Phô Mai Mix', 'Bắp Rang', '55.000', 'https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=400&auto=format&fit=crop', 'Sự kết hợp hoàn hảo giữa vị ngọt thơm ngậy của Caramel và vị mặn bùi của Phô mai Cheddar', 'ACTIVE')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                                <span>Sửa</span>
-                            </button>
-                            <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                    onclick="openDeleteComboModal('CB05', 'Bắp Rang Caramel Phô Mai Mix')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                </svg>
-                                <span>Xóa</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <%---- Món 6: Nước ngọt có ga ----%>
-            <div class="combo-admin-card" data-name="Ly Nước Ngọt Có Ga (32oz)" data-cat="Nước" data-status="ACTIVE">
-                <div class="combo-card-image-wrap">
-                    <img src="https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&auto=format&fit=crop" 
-                         alt="Nước ngọt" class="combo-card-image">
-                    <span class="combo-card-cat-badge">Nước Uống</span>
-                    <span class="combo-card-price-badge">32.000 đ</span>
-                </div>
-                <div class="combo-card-body">
-                    <div class="combo-card-title">Ly Nước Ngọt Có Ga (32oz)</div>
-                    <div class="combo-card-desc">Cực mát lạnh với đá viên sảng khoái (Coca Cola, Sprite, Fanta, Dasani)</div>
-                    <div class="combo-card-footer">
-                        <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                            ● Đang bán
-                        </span>
-                        <div class="table-actions-wrap">
-                            <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                    onclick="openEditComboModal('CB06', 'Ly Nước Ngọt Có Ga (32oz)', 'Nước', '32.000', 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&auto=format&fit=crop', 'Cực mát lạnh với đá viên sảng khoái (Coca Cola, Sprite, Fanta, Dasani)', 'ACTIVE')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                                <span>Sửa</span>
-                            </button>
-                            <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                    onclick="openDeleteComboModal('CB06', 'Ly Nước Ngọt Có Ga (32oz)')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                </svg>
-                                <span>Xóa</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </c:if>
 
         </section>
 
@@ -730,242 +568,61 @@
                         </tr>
                     </thead>
                     <tbody id="comboTableBody">
-                        <%---- Dòng 1 ----%>
-                        <tr data-name="Combo Solo" data-cat="Combo" data-status="ACTIVE">
-                            <td><strong style="color: #fcca46;">#CB01</strong></td>
+                        <c:forEach items="${comboList}" var="cb">
+                        <tr data-name="<c:out value='${cb.name}'/>" data-cat="<c:out value='${cb.category}'/>" data-status="${cb.status}">
+                            <td><strong style="color: #fcca46;" title="${cb.comboID}">#${fn:substring(cb.comboID, 0, 8)}</strong></td>
                             <td>
-                                <img src="https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=200&auto=format&fit=crop" 
-                                     alt="Combo Solo" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid #3c3733;">
+                                <img src="<c:out value='${not empty cb.imageURL ? cb.imageURL : "https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=400&auto=format&fit=crop"}'/>"
+                                     alt="<c:out value='${cb.name}'/>" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid #3c3733;">
                             </td>
-                            <td><strong style="color: #f6ead2;">Combo Solo</strong></td>
-                            <td><span class="badge-role" style="background: rgba(120, 0, 0, 0.4); color: #fcca46; border: 1px solid #fcca46;">Combo</span></td>
-                            <td style="color: #b5a995; font-size: 13px;">1 Bắp ngọt bơ thơm giòn (60oz) + 1 Ly nước ngọt mát lạnh (32oz)</td>
-                            <td><strong style="color: #fcca46; font-size: 14.5px;">65.000 đ</strong></td>
+                            <td><strong style="color: #f6ead2;"><c:out value="${cb.name}"/></strong></td>
+                            <td><span class="badge-role" style="background: rgba(120, 0, 0, 0.4); color: #fcca46; border: 1px solid #fcca46;"><c:out value="${cb.category}"/></span></td>
+                            <td style="color: #b5a995; font-size: 13px;"><c:out value="${cb.description}"/></td>
+                            <td><strong style="color: #fcca46; font-size: 14.5px;"><fmt:formatNumber value="${cb.price}" type="number" maxFractionDigits="0"/> đ</strong></td>
                             <td>
-                                <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                                    ● Đang bán
-                                </span>
+                                <c:choose>
+                            <c:when test="${cb.status == 'ACTIVE'}">
+                                <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">● Đang bán</span>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="badge-status" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">● Tạm hết hàng</span>
+                            </c:otherwise>
+                        </c:choose>
                             </td>
                             <td class="table-actions-cell">
                                 <div class="table-actions-wrap">
                                     <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                            onclick="openEditComboModal('CB01', 'Combo Solo', 'Combo', '65.000', 'https://images.unsplash.com/photo-1572177191856-3cde618dee1f?w=400&auto=format&fit=crop', '1 Bắp ngọt bơ thơm giòn (60oz) + 1 Ly nước ngọt mát lạnh tự chọn (32oz)', 'ACTIVE')">
+                                            data-id="${cb.comboID}" data-name="<c:out value='${cb.name}'/>" data-cat="<c:out value='${cb.category}'/>"
+                                    data-price="<fmt:formatNumber value='${cb.price}' groupingUsed='false' maxFractionDigits='0'/>"
+                                    data-img="<c:out value='${cb.imageURL}'/>" data-desc="<c:out value='${cb.description}'/>" data-status="${cb.status}"
+                                            onclick="const d = this.dataset; openEditComboModal(d.id, d.name, d.cat, d.price, d.img, d.desc, d.status)">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
                                         <span>Sửa</span>
                                     </button>
                                     <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                            onclick="openDeleteComboModal('CB01', 'Combo Solo')">
+                                            data-id="${cb.comboID}" data-name="<c:out value='${cb.name}'/>"
+                                            onclick="openDeleteComboModal(this.dataset.id, this.dataset.name)">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                                        </svg>
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
                                         <span>Xóa</span>
                                     </button>
                                 </div>
                             </td>
                         </tr>
+                        </c:forEach>
 
-                        <tr data-name="Combo Đôi (Couple)" data-cat="Combo" data-status="ACTIVE">
-                            <td><strong style="color: #fcca46;">#CB02</strong></td>
-                            <td>
-                                <img src="https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=200&auto=format&fit=crop" 
-                                     alt="Combo Đôi" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid #3c3733;">
-                            </td>
-                            <td><strong style="color: #f6ead2;">Combo Đôi (Couple)</strong></td>
-                            <td><span class="badge-role" style="background: rgba(120, 0, 0, 0.4); color: #fcca46; border: 1px solid #fcca46;">Combo</span></td>
-                            <td style="color: #b5a995; font-size: 13px;">1 Bắp khổng lồ (vị phô mai hoặc caramel) + 2 Ly nước ngọt mát lạnh (32oz)</td>
-                            <td><strong style="color: #fcca46; font-size: 14.5px;">89.000 đ</strong></td>
-                            <td>
-                                <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                                    ● Đang bán
-                                </span>
-                            </td>
-                            <td class="table-actions-cell">
-                                <div class="table-actions-wrap">
-                                    <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                            onclick="openEditComboModal('CB02', 'Combo Đôi (Couple)', 'Combo', '89.000', 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=400&auto=format&fit=crop', '1 Bắp khổng lồ (vị phô mai hoặc caramel) + 2 Ly nước ngọt mát lạnh tự chọn (32oz)', 'ACTIVE')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
-                                        <span>Sửa</span>
-                                    </button>
-                                    <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                            onclick="openDeleteComboModal('CB02', 'Combo Đôi (Couple)')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                                        </svg>
-                                        <span>Xóa</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <tr data-name="Combo Gia Đình (Family)" data-cat="Combo" data-status="ACTIVE">
-                            <td><strong style="color: #fcca46;">#CB03</strong></td>
-                            <td>
-                                <img src="https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=200&auto=format&fit=crop" 
-                                     alt="Combo Gia Đình" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid #3c3733;">
-                            </td>
-                            <td><strong style="color: #f6ead2;">Combo Gia Đình (Family)</strong></td>
-                            <td><span class="badge-role" style="background: rgba(120, 0, 0, 0.4); color: #fcca46; border: 1px solid #fcca46;">Combo</span></td>
-                            <td style="color: #b5a995; font-size: 13px;">2 Hộp bắp ngọt lớn + 3 Ly nước ngọt + 1 Gói Snack khoai tây chiên giòn</td>
-                            <td><strong style="color: #fcca46; font-size: 14.5px;">139.000 đ</strong></td>
-                            <td>
-                                <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                                    ● Đang bán
-                                </span>
-                            </td>
-                            <td class="table-actions-cell">
-                                <div class="table-actions-wrap">
-                                    <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                            onclick="openEditComboModal('CB03', 'Combo Gia Đình (Family)', 'Combo', '139.000', 'https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=400&auto=format&fit=crop', '2 Hộp bắp ngọt lớn + 3 Ly nước ngọt + 1 Gói Snack khoai tây chiên giòn rụm', 'ACTIVE')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
-                                        <span>Sửa</span>
-                                    </button>
-                                    <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                            onclick="openDeleteComboModal('CB03', 'Combo Gia Đình (Family)')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                                        </svg>
-                                        <span>Xóa</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <tr data-name="Bắp Rang Bơ Truyền Thống (60oz)" data-cat="Bắp Rang" data-status="ACTIVE">
-                            <td><strong style="color: #fcca46;">#CB04</strong></td>
-                            <td>
-                                <img src="https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=200&auto=format&fit=crop" 
-                                     alt="Bắp Rang Bơ" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid #3c3733;">
-                            </td>
-                            <td><strong style="color: #f6ead2;">Bắp Rang Bơ Truyền Thống</strong></td>
-                            <td><span class="badge-role" style="background: rgba(49, 130, 206, 0.2); color: #63b3ed; border: 1px solid #3182ce;">Bắp Rang</span></td>
-                            <td style="color: #b5a995; font-size: 13px;">Hạt ngô nổ vàng ươm thơm lừng mùi bơ béo ngậy truyền thống</td>
-                            <td><strong style="color: #fcca46; font-size: 14.5px;">45.000 đ</strong></td>
-                            <td>
-                                <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                                    ● Đang bán
-                                </span>
-                            </td>
-                            <td class="table-actions-cell">
-                                <div class="table-actions-wrap">
-                                    <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                            onclick="openEditComboModal('CB04', 'Bắp Rang Bơ Truyền Thống (60oz)', 'Bắp Rang', '45.000', 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=400&auto=format&fit=crop', 'Hạt bắp nổ vàng óng ánh, thơm lừng vị bơ béo ngậy truyền thống rạp chiếu', 'ACTIVE')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
-                                        <span>Sửa</span>
-                                    </button>
-                                    <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                            onclick="openDeleteComboModal('CB04', 'Bắp Rang Bơ Truyền Thống (60oz)')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                                        </svg>
-                                        <span>Xóa</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <%---- Dòng 5 ----%>
-                        <tr data-name="Bắp Rang Caramel Phô Mai Mix" data-cat="Bắp Rang" data-status="ACTIVE">
-                            <td><strong style="color: #fcca46;">#CB05</strong></td>
-                            <td>
-                                <img src="https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=200&auto=format&fit=crop" 
-                                     alt="Bắp Phô Mai" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid #3c3733;">
-                            </td>
-                            <td><strong style="color: #f6ead2;">Bắp Rang Caramel Phô Mai Mix</strong></td>
-                            <td><span class="badge-role" style="background: rgba(49, 130, 206, 0.2); color: #63b3ed; border: 1px solid #3182ce;">Bắp Rang</span></td>
-                            <td style="color: #b5a995; font-size: 13px;">Sự kết hợp hoàn hảo giữa vị ngọt thơm ngậy của Caramel và vị mặn bùi của Phô mai Cheddar</td>
-                            <td><strong style="color: #fcca46; font-size: 14.5px;">55.000 đ</strong></td>
-                            <td>
-                                <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                                    ● Đang bán
-                                </span>
-                            </td>
-                            <td class="table-actions-cell">
-                                <div class="table-actions-wrap">
-                                    <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                            onclick="openEditComboModal('CB05', 'Bắp Rang Caramel Phô Mai Mix', 'Bắp Rang', '55.000', 'https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=400&auto=format&fit=crop', 'Sự kết hợp hoàn hảo giữa vị ngọt thơm ngậy của Caramel và vị mặn bùi của Phô mai Cheddar', 'ACTIVE')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
-                                        <span>Sửa</span>
-                                    </button>
-                                    <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                            onclick="openDeleteComboModal('CB05', 'Bắp Rang Caramel Phô Mai Mix')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                                        </svg>
-                                        <span>Xóa</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <%---- Dòng 6 ----%>
-                        <tr data-name="Ly Nước Ngọt Có Ga (32oz)" data-cat="Nước" data-status="ACTIVE">
-                            <td><strong style="color: #fcca46;">#CB06</strong></td>
-                            <td>
-                                <img src="https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200&auto=format&fit=crop" 
-                                     alt="Nước ngọt" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid #3c3733;">
-                            </td>
-                            <td><strong style="color: #f6ead2;">Ly Nước Ngọt Có Ga (32oz)</strong></td>
-                            <td><span class="badge-role" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981;">Nước</span></td>
-                            <td style="color: #b5a995; font-size: 13px;">Cực mát lạnh với đá viên sảng khoái (Coca Cola, Sprite, Fanta, Dasani)</td>
-                            <td><strong style="color: #fcca46; font-size: 14.5px;">32.000 đ</strong></td>
-                            <td>
-                                <span class="badge-status" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
-                                    ● Đang bán
-                                </span>
-                            </td>
-                            <td class="table-actions-cell">
-                                <div class="table-actions-wrap">
-                                    <button type="button" class="btn-table-action edit" title="Sửa combo"
-                                            onclick="openEditComboModal('CB06', 'Ly Nước Ngọt Có Ga (32oz)', 'Nước', '32.000', 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&auto=format&fit=crop', 'Cực mát lạnh với đá viên sảng khoái (Coca Cola, Sprite, Fanta, Dasani)', 'ACTIVE')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
-                                        <span>Sửa</span>
-                                    </button>
-                                    <button type="button" class="btn-table-action delete" title="Xóa combo"
-                                            onclick="openDeleteComboModal('CB06', 'Ly Nước Ngọt Có Ga (32oz)')">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                                        </svg>
-                                        <span>Xóa</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
+                        <c:if test="${empty comboList}">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 30px; color: #94a3b8;">Chưa có combo nào.</td>
+                            </tr>
+                        </c:if>
                     </tbody>
                 </table>
             </div>
@@ -1180,12 +837,12 @@ function openAddComboModal() {
 
 // Mở Modal Sửa Combo
 function openEditComboModal(id, name, cat, price, img, desc, status) {
-    document.getElementById('comboModalTitle').innerHTML = '✏️ Chỉnh Sửa Combo #' + id;
+    document.getElementById('comboModalTitle').textContent = '✏️ Chỉnh Sửa Combo #' + id.substring(0, 8);
     document.getElementById('inputComboID').value = id;
     document.getElementById('inputComboName').value = name;
     document.getElementById('inputComboCategory').value = cat;
     document.getElementById('inputComboPrice').value = price;
-    document.getElementById('inputComboImageUrl').value = img;
+    document.getElementById('inputComboImageUrl').value = img || '';
     document.getElementById('inputComboDesc').value = desc;
     document.getElementById('inputComboStatus').value = status;
     updateComboPreview(img);
@@ -1226,43 +883,26 @@ window.addEventListener('click', function(e) {
     if (e.target === comboModal) closeComboModal();
     if (e.target === deleteModal) closeDeleteComboModal();
 });
+// Tự động quét các thẻ combo trên trang Admin và đồng bộ sang localStorage cho khách đặt vé
+function syncAdminCombosToStorage() {
+    const adminCards = document.querySelectorAll('#comboGridSection .combo-admin-card');
+    const list = [];
+    adminCards.forEach((card, index) => {
+        const name = card.getAttribute('data-name');
+        const priceText = (card.querySelector('.combo-card-price-badge') || {}).textContent || '0';
+        const price = parseInt(priceText.replace(/[^\d]/g, ''), 10) || 0;
+        const img = (card.querySelector('.combo-card-image') || {}).src || '';
+        const desc = (card.querySelector('.combo-card-desc') || {}).textContent || '';
+        const status = card.getAttribute('data-status') || 'ACTIVE';
 
-// Tự động tính toán & cập nhật số liệu thống kê (KPIs) dựa trên danh sách món thực tế
-function updateComboStats() {
-    const cards = document.querySelectorAll('#comboGridSection .combo-admin-card');
-    const total = cards.length;
-    let activeCount = 0;
-    let totalPrice = 0;
-    let priceCount = 0;
-
-    cards.forEach(card => {
-        const status = card.getAttribute('data-status') || '';
-        if (status === 'ACTIVE') {
-            activeCount++;
-        }
-        const priceBadge = card.querySelector('.combo-card-price-badge');
-        if (priceBadge) {
-            const raw = priceBadge.textContent.replace(/[^\d]/g, '');
-            const val = parseInt(raw, 10);
-            if (!isNaN(val) && val > 0) {
-                totalPrice += val;
-                priceCount++;
-            }
+        // Chỉ đưa món Đang bán (ACTIVE) sang cho khách đặt
+        if (status === 'ACTIVE' && name) {
+            list.push({ id: 'CB_ADM_' + (index + 1), name, price, img, desc });
         }
     });
-
-    const statTotalEl = document.getElementById('statTotalCombos');
-    const statActiveEl = document.getElementById('statActiveCombos');
-    const statAvgEl = document.getElementById('statAvgPrice');
-
-    if (statTotalEl) statTotalEl.textContent = total + ' Món';
-    if (statActiveEl) statActiveEl.textContent = activeCount + ' Món';
-    if (statAvgEl && priceCount > 0) {
-        const avg = Math.round(totalPrice / priceCount);
-        statAvgEl.textContent = avg.toLocaleString('vi-VN') + ' đ';
+    if (list.length > 0) {
+        localStorage.setItem('cinema_admin_combos', JSON.stringify(list));
     }
 }
-
-// Chạy tự động cập nhật khi trang load
-document.addEventListener('DOMContentLoaded', updateComboStats);
+document.addEventListener('DOMContentLoaded', syncAdminCombosToStorage);
 </script>
