@@ -80,13 +80,34 @@ public class RegisterServlet extends HttpServlet {
         }
 
         // 6. Kiểm tra email đã tồn tại hay chưa
-        if (userDAO.findByEmail(email.trim()) != null) {
-            request.setAttribute("errorMessage", "Email này đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng email khác.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+        User existingUser = userDAO.findByEmail(email.trim());
+        if (existingUser != null) {
+            // Nếu tài khoản đã kích hoạt -> báo lỗi đã tồn tại
+            if (!"PENDING".equalsIgnoreCase(existingUser.getStatus()) && existingUser.isEmailVerified()) {
+                request.setAttribute("errorMessage", "Email này đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng email khác.");
+                request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+                return;
+            }
+
+            // Nếu tài khoản đang PENDING -> cấp lại token mới và gửi lại email
+            String token = UUID.randomUUID().toString();
+            existingUser.setFullName(fullName.trim());
+            existingUser.setPhone(phone.trim());
+            existingUser.setPassword(PasswordUtil.hash(password));
+            existingUser.setVerificationToken(token);
+            existingUser.setTokenExpiry(LocalDateTime.now().plusHours(24));
+            userDAO.update(existingUser);
+
+            sendVerificationEmail(request, existingUser, token);
+            request.setAttribute("user", existingUser);
+            request.setAttribute("email", existingUser.getEmail());
+            request.setAttribute("fullName", existingUser.getFullName());
+            request.getRequestDispatcher("/WEB-INF/views/auth/verify-notice.jsp").forward(request, response);
             return;
         }
 
-        // 7. Tạo mới người dùng
+        // 7. Tạo mới người dùng ở trạng thái PENDING chờ xác thực email
+        String token = UUID.randomUUID().toString();
         User newUser = new User();
         newUser.setId(UUID.randomUUID().toString());
         newUser.setFullName(fullName.trim());
@@ -94,7 +115,10 @@ public class RegisterServlet extends HttpServlet {
         newUser.setPhone(phone.trim());
         newUser.setPassword(PasswordUtil.hash(password));
         newUser.setRole("USER");
-        newUser.setStatus("ACTIVE");
+        newUser.setStatus("PENDING");
+        newUser.setEmailVerified(false);
+        newUser.setVerificationToken(token);
+        newUser.setTokenExpiry(LocalDateTime.now().plusHours(24));
         newUser.setLoyaltyPoints(0);
         newUser.setCreatedAt(LocalDateTime.now());
 
@@ -112,7 +136,36 @@ public class RegisterServlet extends HttpServlet {
         } catch (Exception ignored) {
         }
 
-        // Đăng ký thành công -> chuyển sang trang đăng nhập kèm cờ thông báo
-        response.sendRedirect(request.getContextPath() + "/auth/login?registered=true");
+        // 8. Gửi Gmail xác nhận tài khoản
+        sendVerificationEmail(request, newUser, token);
+
+        request.setAttribute("user", newUser);
+        request.setAttribute("email", newUser.getEmail());
+        request.setAttribute("fullName", newUser.getFullName());
+        request.getRequestDispatcher("/WEB-INF/views/auth/verify-notice.jsp").forward(request, response);
+    }
+
+    private void sendVerificationEmail(HttpServletRequest request, User user, String token) {
+        try {
+            String baseUrl = request.getScheme() + "://" + request.getServerName();
+            int port = request.getServerPort();
+            if ((request.getScheme().equals("http") && port != 80) ||
+                (request.getScheme().equals("https") && port != 443)) {
+                baseUrl += ":" + port;
+            }
+            baseUrl += request.getContextPath();
+
+            String verifyUrl = baseUrl + "/auth/verify?token=" + token;
+            String to = user.getEmail();
+            String from = "thienantranit@gmail.com";
+            String subject = "[Cinetik Cinema] Xác nhận kích hoạt tài khoản của bạn";
+            String body = com.cinema.util.MailUtilGmail.buildVerificationEmail(user.getFullName(), verifyUrl);
+
+            com.cinema.util.MailUtilGmail.sendMail(to, from, subject, body, true);
+            request.setAttribute("emailSent", true);
+        } catch (Exception e) {
+            System.err.println("[RegisterServlet] Lỗi gửi email xác thực: " + e.getMessage());
+            request.setAttribute("emailError", "Không thể gửi email kích hoạt tự động. Bạn có thể bấm gửi lại.");
+        }
     }
 }

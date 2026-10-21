@@ -17,6 +17,13 @@
             </div>
         </c:if>
 
+        <%---- Thông báo khi kích hoạt email thành công ----%>
+        <c:if test="${param.verified eq 'true'}">
+            <div class="auth-alert success">
+                <span>🎉 Kích hoạt tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ.</span>
+            </div>
+        </c:if>
+
         <%---- Thông báo khi tài khoản bị khóa từ Filter ----%>
         <c:if test="${param.error eq 'account_locked'}">
             <div class="auth-alert error">
@@ -28,6 +35,13 @@
         <c:if test="${not empty errorMessage}">
             <div class="auth-alert error">
                 <span>${errorMessage}</span>
+                <c:if test="${not empty unverifiedEmail}">
+                    <div style="margin-top: 8px;">
+                        <a href="${pageContext.request.contextPath}/auth/resend-verification?email=${unverifiedEmail}" class="auth-link-highlight" style="font-size: 13px; text-decoration: underline;">
+                            ✉️ Bấm vào đây để nhận lại email kích hoạt
+                        </a>
+                    </div>
+                </c:if>
             </div>
         </c:if>
 

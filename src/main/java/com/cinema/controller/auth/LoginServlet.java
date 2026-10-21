@@ -70,6 +70,13 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
+        if (user.isPending() || "PENDING".equalsIgnoreCase(user.getStatus()) || Boolean.FALSE.equals(user.getEmailVerified())) {
+            request.setAttribute("errorMessage", "Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư hoặc bấm gửi lại liên kết xác thực.");
+            request.setAttribute("unverifiedEmail", user.getEmail());
+            request.getRequestDispatcher("/WEB-INF/views/auth/login.jsp").forward(request, response);
+            return;
+        }
+
         // Đồng bộ điểm thưởng từ module của Như sang session
         try {
             LoyaltyService loyaltyService = new LoyaltyService();

@@ -73,6 +73,25 @@ public class UserDAO {
         }
     }
 
+    public User findByVerificationToken(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            TypedQuery<User> query = em.createQuery(
+                    "SELECT u FROM User u WHERE u.verificationToken = :token", User.class);
+            query.setParameter("token", token.trim());
+            List<User> list = query.getResultList();
+            return list.isEmpty() ? null : list.get(0);
+        } catch (Exception e) {
+            System.err.println("[UserDAO] Lỗi findByVerificationToken: " + e.getMessage());
+            return null;
+        } finally {
+            em.close();
+        }
+    }
+
     public List<User> findAll() {
         EntityManager em = JPAUtil.getEntityManager();
         try {

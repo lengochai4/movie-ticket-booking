@@ -41,6 +41,15 @@ public class User implements Serializable {
     @Column(name = "loyalty_points")
     private Integer loyaltyPoints = 0;
 
+    @Column(name = "is_email_verified")
+    private Boolean emailVerified = true;
+
+    @Column(name = "verification_token", length = 100)
+    private String verificationToken;
+
+    @Column(name = "token_expiry")
+    private LocalDateTime tokenExpiry;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -187,5 +196,37 @@ public class User implements Serializable {
 
     public void setCreatedAtDateTime(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Boolean getEmailVerified() {
+        return emailVerified != null ? emailVerified : false;
+    }
+
+    public boolean isEmailVerified() {
+        return Boolean.TRUE.equals(emailVerified);
+    }
+
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getVerificationToken() {
+        return verificationToken;
+    }
+
+    public void setVerificationToken(String verificationToken) {
+        this.verificationToken = verificationToken;
+    }
+
+    public LocalDateTime getTokenExpiry() {
+        return tokenExpiry;
+    }
+
+    public void setTokenExpiry(LocalDateTime tokenExpiry) {
+        this.tokenExpiry = tokenExpiry;
+    }
+
+    public boolean isPending() {
+        return "PENDING".equalsIgnoreCase(this.status);
     }
 }
