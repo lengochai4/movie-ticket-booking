@@ -11,10 +11,6 @@ import jakarta.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 
-/**
- * Tiện ích gửi email qua Gmail SMTP Server (Port 465 - SMTPS)
- * Dựa trên cấu trúc Murach MailUtilGmail.
- */
 public class MailUtilGmail {
 
     public static final String DEFAULT_GMAIL_USER = "thienantranit@gmail.com";
@@ -36,9 +32,6 @@ public class MailUtilGmail {
         return System.getProperty("gmail.password", DEFAULT_GMAIL_PASS);
     }
 
-    /**
-     * Gửi email qua Gmail SMTPS (chuẩn Murach EmailList)
-     */
     public static void sendMail(
             String to,
             String from,
@@ -46,7 +39,6 @@ public class MailUtilGmail {
             String body,
             boolean bodyIsHTML) throws MessagingException, UnsupportedEncodingException {
 
-        // 1. Cấu hình Mail Session với giao thức SMTPS (Port 465)
         Properties props = new Properties();
         props.put("mail.transport.protocol", "smtps");
         props.put("mail.smtps.host", "smtp.gmail.com");
@@ -59,7 +51,6 @@ public class MailUtilGmail {
         Session session = Session.getInstance(props);
         session.setDebug(false);
 
-        // 2. Tạo nội dung MimeMessage
         Message message = new MimeMessage(session);
         message.setSubject(subject);
         if (bodyIsHTML) {
@@ -68,14 +59,12 @@ public class MailUtilGmail {
             message.setText(body);
         }
 
-        // 3. Thiết lập địa chỉ người gửi và người nhận
         String senderEmail = (from != null && !from.isBlank()) ? from : getUsername();
         Address fromAddress = new InternetAddress(senderEmail, "Cinetik Cinema", "UTF-8");
         Address toAddress = new InternetAddress(to);
         message.setFrom(fromAddress);
         message.setRecipient(Message.RecipientType.TO, toAddress);
 
-        // 4. Kết nối và gửi email qua SMTPS Transport
         Transport transport = session.getTransport();
         try {
             transport.connect("smtp.gmail.com", getUsername(), getPassword());
@@ -86,9 +75,6 @@ public class MailUtilGmail {
         }
     }
 
-    /**
-     * Overload rút gọn sử dụng email mặc định làm người gửi
-     */
     public static void sendMail(
             String to,
             String subject,
@@ -97,9 +83,6 @@ public class MailUtilGmail {
         sendMail(to, getUsername(), subject, body, bodyIsHTML);
     }
 
-    /**
-     * Tạo nội dung email HTML xác nhận tài khoản chuyên nghiệp
-     */
     public static String buildVerificationEmail(String fullName, String verifyUrl) {
         return "<!DOCTYPE html>"
                 + "<html>"

@@ -102,6 +102,29 @@ public class ReviewDAO {
         }
     }
 
+    public boolean delete(String id) {
+        if (id == null || id.isBlank()) {
+            return false;
+        }
+        EntityManager em = JPAUtil.getEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+            Review r = em.find(Review.class, id.trim());
+            if (r != null) {
+                em.remove(r);
+            }
+            tx.commit();
+            return true;
+        } catch (Exception e) {
+            if (tx.isActive()) tx.rollback();
+            System.err.println("[ReviewDAO] Lỗi delete: " + e.getMessage());
+            return false;
+        } finally {
+            em.close();
+        }
+    }
+
     private void initDefaultReviews() {
         EntityManager em = JPAUtil.getEntityManager();
         try {
