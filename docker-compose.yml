@@ -1,0 +1,43 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cinema_booking_app
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_OPTS=-Dfile.encoding=UTF-8 -Duser.timezone=Asia/Ho_Chi_Minh -Xms512m -Xmx1024m
+      # Cấu hình VNPay (mặc định đã có sandbox key trong VNPayConfig.java)
+      - VNP_PAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+      - VNP_TMN_CODE=NWGUE67R
+      - VNP_HASH_SECRET=ETJHJUGEBCXYVPFFBVMIFRCVNJCNIFMO
+      # Cấu hình SMTP gửi mail vé (điền tài khoản Gmail App Password nếu cần)
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=
+      - SMTP_PASSWORD=
+    restart: unless-stopped
+
+  # ============================================================================
+  # (TÙY CHỌN) Nếu muốn chạy PostgreSQL local thay vì dùng PostgreSQL trên Render:
+  # Bỏ comment phần dưới đây và cấu hình lại url trong context.xml / persistence.xml
+  # ============================================================================
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: cinema_booking_db
+  #   environment:
+  #     POSTGRES_DB: cinema_db
+  #     POSTGRES_USER: cinema_user
+  #     POSTGRES_PASSWORD: cinema_password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #     - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+  #     - ./database/sample-data.sql:/docker-entrypoint-initdb.d/02-sample-data.sql
+  #     - ./database/seed-cinemas.sql:/docker-entrypoint-initdb.d/03-seed-cinemas.sql
+  #   restart: unless-stopped
+
+# volumes:
+#   pgdata:
