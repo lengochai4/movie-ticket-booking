@@ -195,3 +195,62 @@
     display: block;
     line-height: 1.4;
 }
+
+/* ── Bổ sung giao diện Quên mật khẩu & OTP ── */
+.otp-input {
+    letter-spacing: 6px;
+    font-size: 22px;
+    font-weight: 700;
+    text-align: center;
+    color: #fcca46 !important;
+}
+
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.step-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #23201e;
+    color: #8c8275;
+    border: 1px solid #3c3733;
+    transition: all 0.2s ease;
+}
+
+.step-badge.active {
+    background: rgba(252, 202, 70, 0.15);
+    color: #fcca46;
+    border-color: #fcca46;
+    box-shadow: 0 0 10px rgba(252, 202, 70, 0.2);
+}
+
+.auth-subactions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 13px;
+}
+
+.btn-link-action {
+    background: none;
+    border: none;
+    color: #fcca46;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    text-decoration: underline;
+    font-family: inherit;
+    transition: color 0.2s;
+}
+
+.btn-link-action:hover {
+    color: #fff;
+}

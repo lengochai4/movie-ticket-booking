@@ -45,6 +45,13 @@
             </div>
         </c:if>
 
+        <%---- Thông báo khi đặt lại mật khẩu thành công ----%>
+        <c:if test="${param.reset eq 'success'}">
+            <div class="auth-alert success">
+                <span>Đặt lại mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới.</span>
+            </div>
+        </c:if>
+
         <%---- Form gửi dữ liệu sang AuthServlet bằng phương thức POST ----%>
         <form action="${pageContext.request.contextPath}/auth/login" method="POST" class="auth-form">
             <c:if test="${not empty param.redirect}">
@@ -76,8 +83,8 @@
             </div>
 
             <%---- Ghi nhớ & Quên mật khẩu ----%>
-            <div class="form-options"
-                <label class="remember-label"</label>
+            <div class="form-options">
+                <label class="remember-label">
                     <input type="checkbox" name="rememberMe" value="True">
                     <span>Ghi nhớ đăng nhập</span>
                 </label>
