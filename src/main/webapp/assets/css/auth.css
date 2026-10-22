@@ -10,6 +10,23 @@
     background: radial-gradient(circle at center, #1c1514 0%, #0d0b0a 100%);
 }
 
+/* -- Khung và link gui lai email kich hoat -- */
+.resend-box {
+    margin-top: 8px;
+}
+
+.resend-link {
+    color: #fcaa46;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.resend-link:hover {
+    color: #ffffff;
+}
+
 /* ── Thẻ Card chứa Form ── */
 .auth-card {
     background-color: #161413;
@@ -21,20 +38,29 @@
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
 }
 
+/* ── Header chứa tiêu đề  ── */
+.auth-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+    background: transparent;
+}
+
 .auth-title {
     font-family: 'Playfair Display', serif;
     font-size: 28px;
     font-weight: 700;
     color: #fcca46;
     text-align: center;
-    margin-bottom: 6px;
+    margin: 0 0 6px 0;
 }
 
 .auth-subtitle {
     font-size: 14px;
     color: #b5a995;
     text-align: center;
-    margin-bottom: 24px;
+    margin: 0;
 }
 
 /* ── Hộp thông báo lỗi ── */
@@ -154,6 +180,7 @@
     color: #b5a995;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     padding-top: 16px;
+    background: transparent;
 }
 
 .auth-link-highlight {
@@ -253,4 +280,4 @@
 
 .btn-link-action:hover {
     color: #fff;
-}
+}

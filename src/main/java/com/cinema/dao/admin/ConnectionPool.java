@@ -111,7 +111,6 @@ public class ConnectionPool {
         m.invoke(target, value);
     }
 
-    // Đọc driver/url/user/password từ META-INF/persistence.xml (nguồn cấu hình chung của nhóm)
     private static Map<String, String> readJdbcSettings() {
         Map<String, String> result = new HashMap<>();
         try (InputStream in = ConnectionPool.class.getClassLoader().getResourceAsStream("META-INF/persistence.xml")) {

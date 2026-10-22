@@ -45,7 +45,6 @@ public class ProfileServlet extends HttpServlet {
                 session.setAttribute("loginUser", fresh);
             }
         }
-
         request.getRequestDispatcher("/WEB-INF/views/auth/profile.jsp").forward(request, response);
     }
 
