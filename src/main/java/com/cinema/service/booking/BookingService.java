@@ -372,4 +372,59 @@ public class BookingService {
         }
         return bookingDAO.confirmPayment(bookingID.trim(), paymentID != null ? paymentID : "PAY_ONLINE");
     }
+
+    /**
+     * Xác thực chữ ký phản hồi từ VNPay (HMAC-SHA512).
+     * Giúp Controller không phải tự viết vòng lặp mã hóa thủ công.
+     */
+    public boolean verifyVNPaySignature(Map<String, String> fields, String secureHash) {
+        if (fields == null || secureHash == null || secureHash.trim().isEmpty()) {
+            return false;
+        }
+
+        List<String> fieldNames = new ArrayList<>(fields.keySet());
+        Collections.sort(fieldNames);
+
+        StringBuilder hashData = new StringBuilder();
+        try {
+            Iterator<String> itr = fieldNames.iterator();
+            while (itr.hasNext()) {
+                String fieldName = itr.next();
+                String fieldValue = fields.get(fieldName);
+                if (fieldValue != null && !fieldValue.isEmpty()) {
+                    hashData.append(fieldName).append('=');
+                    hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
+                    if (itr.hasNext()) {
+                        hashData.append('&');
+                    }
+                }
+            }
+            String signValue = VNPayConfig.hmacSHA512(VNPayConfig.VNP_HASH_SECRET, hashData.toString());
+            return signValue.equalsIgnoreCase(secureHash);
+        } catch (Exception e) {
+            System.err.println("[BookingService] Lỗi kiểm tra chữ ký VNPay: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Tính số điểm thành viên tối đa có thể áp dụng cho hóa đơn:
+     * - Không vượt quá số điểm khách đang có.
+     * - Không vượt quá 90% tổng giá trị đơn hàng.
+     * - Tránh bẫy số tiền còn lại nhỏ hơn 5.000đ (VNPay không nhận đơn < 5.000đ).
+     */
+    public int calculateMaxUsablePoints(BigDecimal rawTotal, int availablePoints) {
+        if (rawTotal == null || availablePoints <= 0) {
+            return 0;
+        }
+
+        double total = rawTotal.doubleValue();
+        int maxPoints = (int) Math.floor((total * 0.9) / LoyaltyService.POINT_VALUE_VND);
+
+        while (maxPoints > 0 && (total - (maxPoints * LoyaltyService.POINT_VALUE_VND)) < 5000.0) {
+            maxPoints--;
+        }
+
+        return Math.min(availablePoints, maxPoints);
+    }
 }
