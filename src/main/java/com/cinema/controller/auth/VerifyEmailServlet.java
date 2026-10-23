@@ -12,9 +12,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
+/**
+ * Controller xử lý Xác thực email qua liên kết kích hoạt (Module Auth - Ân).
+ * Tiếp nhận token từ email người dùng nhấp vào (/auth/verify?token=...).
+ */
 @WebServlet("/auth/verify")
 public class VerifyEmailServlet extends HttpServlet {
 
+    private static final long serialVersionUID = 1L;
     private final UserDAO userDAO = new UserDAO();
 
     @Override
@@ -25,36 +30,30 @@ public class VerifyEmailServlet extends HttpServlet {
 
         String token = request.getParameter("token");
 
-        // 1. Kiểm tra token rỗng
+        // ── Bước 1: Kiểm tra mã token hợp lệ ──
         if (token == null || token.isBlank()) {
-            request.setAttribute("status", "invalid");
-            request.setAttribute("title", "Liên kết không hợp lệ");
-            request.setAttribute("message", "Liên kết xác nhận không hợp lệ hoặc thiếu mã xác thực.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/verify-result.jsp").forward(request, response);
+            forwardResult(request, response, "invalid", "Liên kết không hợp lệ",
+                    "Liên kết xác nhận không hợp lệ hoặc thiếu mã xác thực kích hoạt.");
             return;
         }
 
-        // 2. Tìm người dùng sở hữu token
+        // ── Bước 2: Tìm người dùng sở hữu mã token ──
         User user = userDAO.findByVerificationToken(token.trim());
         if (user == null) {
-            request.setAttribute("status", "invalid");
-            request.setAttribute("title", "Mã xác thực không tồn tại");
-            request.setAttribute("message", "Mã xác thực không tồn tại, đã hết hạn hoặc tài khoản này đã được kích hoạt trước đó.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/verify-result.jsp").forward(request, response);
+            forwardResult(request, response, "invalid", "Mã xác thực không tồn tại",
+                    "Mã xác thực không tồn tại, đã hết hạn hoặc tài khoản này đã được kích hoạt trước đó.");
             return;
         }
 
-        // 3. Kiểm tra hạn sử dụng (24 giờ)
+        // ── Bước 3: Kiểm tra thời hạn hiệu lực của mã token (24 giờ) ──
         if (user.getTokenExpiry() != null && LocalDateTime.now().isAfter(user.getTokenExpiry())) {
-            request.setAttribute("status", "expired");
-            request.setAttribute("title", "Liên kết đã hết hạn");
             request.setAttribute("email", user.getEmail());
-            request.setAttribute("message", "Liên kết xác thực tài khoản này đã quá hạn (chỉ có hiệu lực trong 24 giờ). Vui lòng yêu cầu gửi lại email mới.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/verify-result.jsp").forward(request, response);
+            forwardResult(request, response, "expired", "Liên kết đã hết hạn",
+                    "Liên kết xác thực tài khoản này đã quá hạn (chỉ có hiệu lực trong 24 giờ). Vui lòng yêu cầu gửi lại email mới.");
             return;
         }
 
-        // 4. Kích hoạt tài khoản và lưu vào Database
+        // ── Bước 4: Kích hoạt tài khoản và cập nhật cơ sở dữ liệu ──
         user.setStatus("ACTIVE");
         user.setEmailVerified(true);
         user.setVerificationToken(null);
@@ -62,26 +61,32 @@ public class VerifyEmailServlet extends HttpServlet {
 
         boolean updated = userDAO.update(user);
         if (!updated) {
-            request.setAttribute("status", "error");
-            request.setAttribute("title", "Lỗi kích hoạt");
-            request.setAttribute("message", "Có lỗi xảy ra khi lưu trạng thái tài khoản vào cơ sở dữ liệu. Vui lòng thử lại sau.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/verify-result.jsp").forward(request, response);
+            forwardResult(request, response, "error", "Lỗi kích hoạt",
+                    "Có lỗi xảy ra khi lưu trạng thái kích hoạt vào hệ thống. Vui lòng thử lại sau.");
             return;
         }
 
-        // Đồng bộ điểm thưởng
+        // Đồng bộ ví điểm thưởng thành viên
         try {
             LoyaltyService loyaltyService = new LoyaltyService();
             loyaltyService.getPoints(user.getId());
         } catch (Exception ignored) {
         }
 
-        // 5. Hiển thị thông báo kích hoạt thành công
-        request.setAttribute("status", "success");
-        request.setAttribute("title", "Kích hoạt thành công!");
+        // ── Bước 5: Kích hoạt thành công ──
         request.setAttribute("fullName", user.getFullName());
         request.setAttribute("email", user.getEmail());
-        request.setAttribute("message", "Chúc mừng bạn đã kích hoạt tài khoản thành công! Bây giờ bạn đã có thể đăng nhập để đặt vé xem phim và nhận ưu đãi.");
+        forwardResult(request, response, "success", "Kích hoạt thành công!",
+                "Chúc mừng bạn đã kích hoạt tài khoản thành công! Bây giờ bạn có thể đăng nhập để đặt vé xem phim và tích lũy ưu đãi.");
+    }
+
+    private void forwardResult(HttpServletRequest request, HttpServletResponse response,
+                               String status, String title, String message)
+            throws ServletException, IOException {
+        request.setAttribute("status", status);
+        request.setAttribute("title", title);
+        request.setAttribute("message", message);
         request.getRequestDispatcher("/WEB-INF/views/auth/verify-result.jsp").forward(request, response);
     }
 }
+

@@ -2,7 +2,7 @@ package com.cinema.controller.auth;
 
 import com.cinema.dao.auth.UserDAO;
 import com.cinema.entity.User;
-import com.cinema.service.order.LoyaltyService;
+import com.cinema.util.MailUtilGmail;
 import com.cinema.util.PasswordUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -14,9 +14,15 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Controller xử lý Đăng ký tài khoản mới (Module Auth - Ân).
+ * - GET: Hiển thị giao diện form đăng ký.
+ * - POST: Xác thực thông tin, tạo tài khoản trạng thái PENDING và gửi email xác nhận.
+ */
 @WebServlet("/auth/register")
 public class RegisterServlet extends HttpServlet {
 
+    private static final long serialVersionUID = 1L;
     private final UserDAO userDAO = new UserDAO();
 
     @Override
@@ -33,6 +39,7 @@ public class RegisterServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
 
+        // ── Bước 1: Tiếp nhận dữ liệu từ form ──
         String fullName = request.getParameter("fullName");
         String email = request.getParameter("email");
         String phone = request.getParameter("phone");
@@ -40,56 +47,44 @@ public class RegisterServlet extends HttpServlet {
         String confirmPassword = request.getParameter("confirmPassword");
         String agreeTerms = request.getParameter("agreeTerms");
 
-        // 1. Kiểm tra thông tin rỗng
-        if (fullName == null || fullName.isBlank() ||
-                email == null || email.isBlank() ||
-                phone == null || phone.isBlank() ||
-                password == null || password.isBlank() ||
-                confirmPassword == null || confirmPassword.isBlank()) {
-            request.setAttribute("errorMessage", "Vui lòng điền đầy đủ các thông tin bắt buộc.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+        // ── Bước 2: Kiểm tra tính hợp lệ dữ liệu ──
+        if (isBlank(fullName) || isBlank(email) || isBlank(phone) || isBlank(password) || isBlank(confirmPassword)) {
+            returnWithError(request, response, "Vui lòng điền đầy đủ các thông tin bắt buộc.");
             return;
         }
 
-        // 2. Kiểm tra điều khoản
-        if (agreeTerms == null || agreeTerms.isBlank()) {
-            request.setAttribute("errorMessage", "Bạn cần đồng ý với Điều khoản & Chính sách của rạp để đăng ký.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+        if (isBlank(agreeTerms)) {
+            returnWithError(request, response, "Bạn cần đồng ý với Điều khoản & Chính sách của rạp để đăng ký.");
             return;
         }
 
-        // 3. Kiểm tra số điện thoại (10 chữ số)
         if (!phone.trim().matches("^[0-9]{10}$")) {
-            request.setAttribute("errorMessage", "Số điện thoại phải gồm đúng 10 chữ số.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+            returnWithError(request, response, "Số điện thoại phải gồm đúng 10 chữ số.");
             return;
         }
 
-        // 4. Kiểm tra xác nhận mật khẩu
         if (!password.equals(confirmPassword)) {
-            request.setAttribute("errorMessage", "Mật khẩu xác nhận không trùng khớp!");
-            request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+            returnWithError(request, response, "Mật khẩu xác nhận không trùng khớp!");
             return;
         }
 
-        // 5. Kiểm tra độ mạnh của mật khẩu
         if (!PasswordUtil.isStrong(password)) {
-            request.setAttribute("errorMessage", "Mật khẩu phải có tối thiểu 8 ký tự, gồm cả chữ hoa, chữ thường, số và ký tự đặc biệt.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+            returnWithError(request, response, "Mật khẩu phải có tối thiểu 8 ký tự, gồm cả chữ hoa, chữ thường, số và ký tự đặc biệt.");
             return;
         }
 
-        // 6. Kiểm tra email đã tồn tại hay chưa
-        User existingUser = userDAO.findByEmail(email.trim());
+        // ── Bước 3: Kiểm tra sự tồn tại của Email trong hệ thống ──
+        String cleanEmail = email.trim().toLowerCase();
+        User existingUser = userDAO.findByEmail(cleanEmail);
+
         if (existingUser != null) {
-            // Nếu tài khoản đã kích hoạt -> báo lỗi đã tồn tại
-            if (!"PENDING".equalsIgnoreCase(existingUser.getStatus()) && existingUser.isEmailVerified()) {
-                request.setAttribute("errorMessage", "Email này đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng email khác.");
-                request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+            // Nếu tài khoản đã được kích hoạt -> không cho đăng ký đè
+            if (!existingUser.isPending() && existingUser.isEmailVerified()) {
+                returnWithError(request, response, "Email này đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng email khác.");
                 return;
             }
 
-            // Nếu tài khoản đang PENDING -> cấp lại token mới và gửi lại email
+            // Nếu tài khoản vẫn ở trạng thái PENDING -> Cấp lại mã token mới và gửi lại email
             String token = UUID.randomUUID().toString();
             existingUser.setFullName(fullName.trim());
             existingUser.setPhone(phone.trim());
@@ -99,19 +94,16 @@ public class RegisterServlet extends HttpServlet {
             userDAO.update(existingUser);
 
             sendVerificationEmail(request, existingUser, token);
-            request.setAttribute("user", existingUser);
-            request.setAttribute("email", existingUser.getEmail());
-            request.setAttribute("fullName", existingUser.getFullName());
-            request.getRequestDispatcher("/WEB-INF/views/auth/verify-notice.jsp").forward(request, response);
+            forwardToNotice(request, response, existingUser);
             return;
         }
 
-        // 7. Tạo mới người dùng ở trạng thái PENDING chờ xác thực email
+        // ── Bước 4: Tạo tài khoản mới ở trạng thái PENDING ──
         String token = UUID.randomUUID().toString();
         User newUser = new User();
         newUser.setId(UUID.randomUUID().toString());
         newUser.setFullName(fullName.trim());
-        newUser.setEmail(email.trim().toLowerCase());
+        newUser.setEmail(cleanEmail);
         newUser.setPhone(phone.trim());
         newUser.setPassword(PasswordUtil.hash(password));
         newUser.setRole("USER");
@@ -124,48 +116,60 @@ public class RegisterServlet extends HttpServlet {
 
         boolean ok = userDAO.insert(newUser);
         if (!ok) {
-            request.setAttribute("errorMessage", "Có lỗi xảy ra trong quá trình tạo tài khoản. Vui lòng thử lại sau.");
-            request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+            returnWithError(request, response, "Có lỗi xảy ra trong quá trình tạo tài khoản. Vui lòng thử lại sau.");
             return;
         }
 
-        // Khởi tạo sổ điểm thưởng nếu có LoyaltyService
-        try {
-            LoyaltyService loyaltyService = new LoyaltyService();
-            loyaltyService.getPoints(newUser.getId());
-        } catch (Exception ignored) {
-        }
-
-        // 8. Gửi Gmail xác nhận tài khoản
+        // ── Bước 5: Gửi email kích hoạt và chuyển sang trang thông báo ──
         sendVerificationEmail(request, newUser, token);
-
-        request.setAttribute("user", newUser);
-        request.setAttribute("email", newUser.getEmail());
-        request.setAttribute("fullName", newUser.getFullName());
-        request.getRequestDispatcher("/WEB-INF/views/auth/verify-notice.jsp").forward(request, response);
+        forwardToNotice(request, response, newUser);
     }
 
+    /**
+     * Gửi email chứa đường dẫn xác nhận tài khoản
+     */
     private void sendVerificationEmail(HttpServletRequest request, User user, String token) {
         try {
-            String baseUrl = request.getScheme() + "://" + request.getServerName();
-            int port = request.getServerPort();
-            if ((request.getScheme().equals("http") && port != 80) ||
-                (request.getScheme().equals("https") && port != 443)) {
-                baseUrl += ":" + port;
-            }
-            baseUrl += request.getContextPath();
-
-            String verifyUrl = baseUrl + "/auth/verify?token=" + token;
-            String to = user.getEmail();
-            String from = "thienantranit@gmail.com";
+            String verifyUrl = buildVerificationUrl(request, token);
             String subject = "[Cinetik Cinema] Xác nhận kích hoạt tài khoản của bạn";
-            String body = com.cinema.util.MailUtilGmail.buildVerificationEmail(user.getFullName(), verifyUrl);
+            String body = MailUtilGmail.buildVerificationEmail(user.getFullName(), verifyUrl);
 
-            com.cinema.util.MailUtilGmail.sendMail(to, from, subject, body, true);
+            MailUtilGmail.sendMail(user.getEmail(), subject, body, true);
             request.setAttribute("emailSent", true);
         } catch (Exception e) {
             System.err.println("[RegisterServlet] Lỗi gửi email xác thực: " + e.getMessage());
             request.setAttribute("emailError", "Không thể gửi email kích hoạt tự động. Bạn có thể bấm gửi lại.");
         }
     }
-}
+
+    /**
+     * Sinh đường dẫn kích hoạt đầy đủ (kèm domain, port, contextPath)
+     */
+    private String buildVerificationUrl(HttpServletRequest request, String token) {
+        String baseUrl = request.getScheme() + "://" + request.getServerName();
+        int port = request.getServerPort();
+        if ((request.getScheme().equals("http") && port != 80) ||
+            (request.getScheme().equals("https") && port != 443)) {
+            baseUrl += ":" + port;
+        }
+        return baseUrl + request.getContextPath() + "/auth/verify?token=" + token;
+    }
+
+    private void returnWithError(HttpServletRequest request, HttpServletResponse response, String message)
+            throws ServletException, IOException {
+        request.setAttribute("errorMessage", message);
+        request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+    }
+
+    private void forwardToNotice(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        request.setAttribute("user", user);
+        request.setAttribute("email", user.getEmail());
+        request.setAttribute("fullName", user.getFullName());
+        request.getRequestDispatcher("/WEB-INF/views/auth/verify-notice.jsp").forward(request, response);
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+}

@@ -14,11 +14,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * AuthFilter - Kiểm tra người dùng đã đăng nhập chưa đối với các trang yêu cầu xác thực.
- * Các URL bảo vệ:
- *   - /auth/profile, /auth/profile/*
- *   - /booking/*
- *   - /order/*, /orders/*
+ * Filter kiểm tra quyền đăng nhập (Module Auth - Ân).
+ * - Chặn truy cập trái phép các trang yêu cầu tài khoản (hồ sơ cá nhân, đặt vé, lịch sử đơn hàng).
+ * - Tự động lưu URL hiện tại để chuyển tiếp người dùng quay lại sau khi đăng nhập xong.
+ * - Kiểm tra tức thì trạng thái tài khoản (hủy phiên nếu tài khoản bị khóa).
  */
 @WebFilter(filterName = "AuthFilter", urlPatterns = {
         "/auth/profile",
@@ -32,10 +31,6 @@ public class AuthFilter implements Filter {
     private final UserDAO userDAO = new UserDAO();
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-    }
-
-    @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
@@ -44,22 +39,19 @@ public class AuthFilter implements Filter {
         HttpSession session = httpRequest.getSession(false);
         Object loginUserObj = (session != null) ? session.getAttribute("loginUser") : null;
 
-        // 1. Chưa đăng nhập -> chuyển hướng về trang đăng nhập kèm redirect
+        // ── Bước 1: Chưa đăng nhập -> Chuyển hướng về trang đăng nhập kèm redirect URL ──
         if (loginUserObj == null) {
-            String requestURI = httpRequest.getRequestURI();
-            String queryString = httpRequest.getQueryString();
-            String redirectUrl = (queryString != null) ? (requestURI + "?" + queryString) : requestURI;
-
+            String targetUrl = getTargetUrl(httpRequest);
             httpResponse.sendRedirect(httpRequest.getContextPath() + "/auth/login?redirect=" +
-                    URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8));
+                    URLEncoder.encode(targetUrl, StandardCharsets.UTF_8));
             return;
         }
 
-        // 2. Đọc lại trạng thái mới nhất từ database (xử lý A4: tài khoản bị khóa bị hủy phiên ngay)
-        String userId = LoginUserSupport.getUserId(loginUserObj);
+        // ── Bước 2: Kiểm tra trạng thái tài khoản mới nhất trong Database ──
+        String userId = (loginUserObj instanceof User u) ? u.getId() : LoginUserSupport.getUserId(loginUserObj);
         User freshUser = (userId != null) ? userDAO.findById(userId) : null;
 
-        if (freshUser == null || freshUser.isLocked() || "LOCKED".equalsIgnoreCase(freshUser.getStatus())) {
+        if (freshUser == null || freshUser.isLocked()) {
             if (session != null) {
                 session.invalidate();
             }
@@ -67,14 +59,18 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // Cập nhật lại đối tượng user mới nhất vào session
+        // ── Bước 3: Đồng bộ trạng thái mới nhất vào Session và cho phép đi tiếp ──
         session.setAttribute("loginUser", freshUser);
-
-        // 3. Đã đăng nhập và tài khoản hoạt động -> cho qua filter chain
         chain.doFilter(request, response);
     }
 
-    @Override
-    public void destroy() {
+    /**
+     * Lấy URL đầy đủ mà người dùng đang cố gắng truy cập
+     */
+    private String getTargetUrl(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String query = request.getQueryString();
+        return (query != null && !query.isBlank()) ? (uri + "?" + query) : uri;
     }
 }
+
