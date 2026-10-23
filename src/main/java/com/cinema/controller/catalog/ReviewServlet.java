@@ -15,11 +15,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Controller xử lý Gửi đánh giá & bình luận phim (Module Review - Ân).
- * - GET: Điều hướng về danh sách phim.
- * - POST: Tiếp nhận số sao và nội dung bình luận từ người dùng đã đăng nhập.
- */
 @WebServlet("/review/add")
 public class ReviewServlet extends HttpServlet {
 

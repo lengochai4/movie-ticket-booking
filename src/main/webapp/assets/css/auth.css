@@ -19,6 +19,7 @@
     width: 100%;
     max-width: 440px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+
 }
 
 .auth-title {
@@ -54,6 +55,7 @@
     display: flex;
     flex-direction: column;
     gap: 18px;
+
 }
 
 .form-group {
@@ -155,6 +157,7 @@
     color: #b5a995;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     padding-top: 16px;
+    background: transparent;
 }
 
 .auth-link-highlight {
@@ -309,4 +312,27 @@
 .alert-action {
     margin-top: 8px;
     font-size: 13px;
-}
+}
+
+/* ── Ghi đè CSS riêng cho thẻ header của khung Đăng nhập ── */
+header.auth-header {
+    display: flex !important;
+    flex-direction: column !important; /* Xếp tiêu đề và phụ đề theo hàng dọc */
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important; /* Xóa màu nền đen */
+    border-bottom: none !important; /* Xóa đường kẻ màu đỏ */
+    padding: 0 !important;
+    width: 100% !important;
+    margin-bottom: 20px !important;
+}
+
+header.auth-header .auth-title {
+    margin: 0 0 6px 0 !important;
+    color: #fcca46 !important;
+}
+
+header.auth-header .auth-subtitle {
+    margin: 0 !important;
+    color: #b5a995 !important;
+}

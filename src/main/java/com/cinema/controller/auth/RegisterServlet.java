@@ -14,11 +14,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Controller xử lý Đăng ký tài khoản mới (Module Auth - Ân).
- * - GET: Hiển thị giao diện form đăng ký.
- * - POST: Xác thực thông tin, tạo tài khoản trạng thái PENDING và gửi email xác nhận.
- */
 @WebServlet("/auth/register")
 public class RegisterServlet extends HttpServlet {
 
@@ -125,9 +120,6 @@ public class RegisterServlet extends HttpServlet {
         forwardToNotice(request, response, newUser);
     }
 
-    /**
-     * Gửi email chứa đường dẫn xác nhận tài khoản
-     */
     private void sendVerificationEmail(HttpServletRequest request, User user, String token) {
         try {
             String verifyUrl = buildVerificationUrl(request, token);
@@ -142,9 +134,6 @@ public class RegisterServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Sinh đường dẫn kích hoạt đầy đủ (kèm domain, port, contextPath)
-     */
     private String buildVerificationUrl(HttpServletRequest request, String token) {
         String baseUrl = request.getScheme() + "://" + request.getServerName();
         int port = request.getServerPort();
@@ -172,4 +161,4 @@ public class RegisterServlet extends HttpServlet {
     private boolean isBlank(String s) {
         return s == null || s.isBlank();
     }
-}
+}

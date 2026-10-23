@@ -13,10 +13,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Controller xử lý Gửi lại email kích hoạt tài khoản (Module Auth - Ân).
- * Hỗ trợ cả GET (click từ link thông báo) và POST (submit từ form).
- */
 @WebServlet("/auth/resend-verification")
 public class ResendVerificationServlet extends HttpServlet {
 

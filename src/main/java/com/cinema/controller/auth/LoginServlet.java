@@ -13,11 +13,6 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 
-/**
- * Controller xử lý Đăng nhập người dùng (Module Auth - Ân).
- * - GET: Hiển thị form đăng nhập (nếu đã đăng nhập thì chuyển hướng trang chủ).
- * - POST: Tiếp nhận tài khoản + mật khẩu, xác thực và lưu phiên đăng nhập.
- */
 @WebServlet("/auth/login")
 public class LoginServlet extends HttpServlet {
 
@@ -107,9 +102,6 @@ public class LoginServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Trả về trang đăng nhập kèm thông báo lỗi
-     */
     private void returnWithError(HttpServletRequest request, HttpServletResponse response, String message)
             throws ServletException, IOException {
         request.setAttribute("errorMessage", message);
@@ -129,4 +121,4 @@ public class LoginServlet extends HttpServlet {
         }
         return redirect.startsWith("/") && !redirect.startsWith("//");
     }
-}
+}

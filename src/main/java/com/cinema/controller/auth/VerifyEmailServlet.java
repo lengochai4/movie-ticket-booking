@@ -12,10 +12,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
-/**
- * Controller xử lý Xác thực email qua liên kết kích hoạt (Module Auth - Ân).
- * Tiếp nhận token từ email người dùng nhấp vào (/auth/verify?token=...).
- */
 @WebServlet("/auth/verify")
 public class VerifyEmailServlet extends HttpServlet {
 

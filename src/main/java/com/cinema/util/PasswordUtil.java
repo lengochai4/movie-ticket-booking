@@ -7,22 +7,15 @@ import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.regex.Pattern;
 
-/**
- * Tiện ích mã hóa và kiểm tra mật khẩu người dùng (Module Auth - Ân).
- * - Thuật toán: SHA-256 kết hợp Salt ngẫu nhiên (chống Rainbow Table).
- * - Định dạng lưu trữ CSDL: saltHex:hashHex
- */
 public final class PasswordUtil {
 
     private static final SecureRandom RANDOM = new SecureRandom();
-    // Tiêu chuẩn mật khẩu: Tối thiểu 8 ký tự, gồm ít nhất 1 chữ thường, 1 chữ hoa, 1 số và 1 ký tự đặc biệt
     private static final Pattern STRONG_PASSWORD_PATTERN =
             Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[\\W_]).{8,}$");
 
     private PasswordUtil() {
         // Utility class không cho khởi tạo
     }
-
     /**
      * Băm mật khẩu người dùng nhập vào để lưu vào cơ sở dữ liệu.
      * @param plainPassword Mật khẩu gốc chưa mã hóa
@@ -32,12 +25,10 @@ public final class PasswordUtil {
         if (plainPassword == null || plainPassword.isBlank()) {
             return null;
         }
-        // 1. Sinh 16 byte muối (salt) ngẫu nhiên
         byte[] salt = new byte[16];
         RANDOM.nextBytes(salt);
         String saltHex = HexFormat.of().formatHex(salt);
 
-        // 2. Băm muối + mật khẩu thành chuỗi SHA-256
         String hashHex = computeSha256(saltHex + plainPassword);
         return saltHex + ":" + hashHex;
     }
@@ -78,16 +69,11 @@ public final class PasswordUtil {
         );
     }
 
-    /**
-     * Kiểm tra độ mạnh của mật khẩu theo chuẩn bảo mật.
-     */
+
     public static boolean isStrong(String password) {
         return password != null && STRONG_PASSWORD_PATTERN.matcher(password).matches();
     }
 
-    /**
-     * Tính toán mã băm SHA-256 dạng chuỗi Hex.
-     */
     private static String computeSha256(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

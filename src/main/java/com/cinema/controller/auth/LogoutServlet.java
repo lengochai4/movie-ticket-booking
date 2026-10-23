@@ -9,10 +9,6 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 
-/**
- * Controller xử lý Đăng xuất người dùng (Module Auth - Ân).
- * Hủy toàn bộ phiên làm việc (Session) và điều hướng về trang chủ phim.
- */
 @WebServlet("/auth/logout")
 public class LogoutServlet extends HttpServlet {
 

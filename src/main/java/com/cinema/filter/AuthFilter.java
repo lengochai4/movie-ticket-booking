@@ -13,12 +13,6 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Filter kiểm tra quyền đăng nhập (Module Auth - Ân).
- * - Chặn truy cập trái phép các trang yêu cầu tài khoản (hồ sơ cá nhân, đặt vé, lịch sử đơn hàng).
- * - Tự động lưu URL hiện tại để chuyển tiếp người dùng quay lại sau khi đăng nhập xong.
- * - Kiểm tra tức thì trạng thái tài khoản (hủy phiên nếu tài khoản bị khóa).
- */
 @WebFilter(filterName = "AuthFilter", urlPatterns = {
         "/auth/profile",
         "/auth/profile/*",
