@@ -699,6 +699,7 @@ public class BookingDAO {
                 map.put("userId", rs.getString("userid"));
                 map.put("showtimeId", rs.getString("showtimeid"));
                 map.put("status", rs.getString("bookingstatus"));
+                map.put("bookingStatus", rs.getString("bookingstatus"));
                 map.put("movieTitle", rs.getString("movietitle"));
                 map.put("posterUrl", rs.getString("posterurl"));
                 map.put("cinemaName", rs.getString("cinemaname"));
